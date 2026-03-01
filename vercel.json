@@ -1,0 +1,11 @@
+{
+  "version": 2,
+  "public": true,
+  "builds": [
+    { "src": "ai-strategy-site/**", "use": "@vercel/static" }
+  ],
+  "routes": [
+    { "src": "/", "dest": "ai-strategy-site/index.html" },
+    { "src": "/(.*)", "dest": "ai-strategy-site/$1" }
+  ]
+}

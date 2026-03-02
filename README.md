@@ -6,7 +6,8 @@ Next.js portfolio strategy dashboard for AI-focused investments.
 
 - **7-tab interface**: Universe, Backtests, Scenarios, My Portfolio, Model Portfolios, Exit Rules, 10-Year Forecast
 - **localStorage persistence**: Edits save automatically and survive page refresh
-- **Live price refresh**: Optional Finnhub API integration for real-time prices
+- **Live price refresh**: Trading 212, Yahoo Finance, and Finnhub integration
+- **Trading 212 sync**: Pull actual shares, cost basis, and prices from your T212 account
 - **Cost basis & P/L tracking**: Per-holding purchase price with unrealised gains/losses
 - **Thesis cards**: Collapsible per-holding cards with fundamentals, key drivers, and manual break toggles
 - **Client-side alerts**: Price-break, concentration, and EXIT-verdict detection with configurable webhook
@@ -24,7 +25,8 @@ npm run dev
 
 Copy `.env.local.example` to `.env.local` and configure:
 
-- `FINNHUB_API_KEY` — Free API key from [finnhub.io](https://finnhub.io) for live price refresh
+- `T212_API_KEY` + `T212_API_SECRET` — Trading 212 API credentials for live prices and portfolio sync
+- `FINNHUB_API_KEY` — Free API key from [finnhub.io](https://finnhub.io) as fallback
 - `SITE_PASSWORD` — Set to enable password protection
 
 ## Deployment

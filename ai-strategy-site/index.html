@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Market Strategy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js" defer></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0a0a;--surface:#141414;--surface2:#1a1a1a;
+  --border:rgba(255,255,255,0.08);--border-hover:rgba(255,255,255,0.14);
+  --text:#e5e5e5;--text-muted:#a0a0a0;--text-faint:#666;
+  --accent:#3b82f6;--accent-dim:rgba(59,130,246,0.15);
+  --red:#ef4444;--red-dim:rgba(239,68,68,0.12);
+  --amber:#f59e0b;--amber-dim:rgba(245,158,11,0.12);
+  --green:#22c55e;--green-dim:rgba(34,197,94,0.12);
+  --orange:#f97316;--orange-dim:rgba(249,115,22,0.12);
+  --indigo:#6366f1;--indigo-dim:rgba(99,102,241,0.12);
+  --radius:6px;--radius-lg:10px;
+  --ease:cubic-bezier(0.16,1,0.3,1);
+}
+html,body{height:100%;overflow:hidden;font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+a{color:var(--accent);text-decoration:none}
+.tabular{font-variant-numeric:tabular-nums lining-nums}
+
+/* Layout */
+.app{display:flex;flex-direction:column;height:100dvh}
+.topbar{flex-shrink:0;display:flex;align-items:center;gap:12px;padding:0 20px;height:52px;background:var(--surface);border-bottom:1px solid var(--border);z-index:20;overflow-x:auto}
+.logo{font-weight:700;font-size:14px;letter-spacing:-0.02em;white-space:nowrap;color:var(--text);display:flex;align-items:center;gap:8px}
+.logo svg{flex-shrink:0}
+.nav{display:flex;gap:2px;margin-left:24px}
+.nav button{background:none;border:none;color:var(--text-muted);font:500 13px/1 'Inter',sans-serif;padding:8px 14px;border-radius:var(--radius);cursor:pointer;white-space:nowrap;transition:all 180ms var(--ease)}
+.nav button:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.nav button.active{color:var(--text);background:var(--accent-dim)}
+.nav button:active{transform:scale(0.97)}
+.main{flex:1;overflow-y:auto;overscroll-behavior:contain;padding:24px}
+@media(max-width:768px){
+  .topbar{padding:0 12px;height:auto;min-height:48px;flex-wrap:wrap;gap:8px;padding-top:8px;padding-bottom:8px}
+  .nav{margin-left:0;overflow-x:auto;width:100%}
+  .main{padding:16px}
+}
+
+/* Tabs */
+.tab{display:none;max-width:1200px;margin:0 auto;width:100%}
+.tab.active{display:block}
+
+/* KPI Cards */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px}
+.kpi-label{font-size:12px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:700;letter-spacing:-0.02em}
+
+/* Tables */
+.table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-lg);background:var(--surface)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead{position:sticky;top:0;z-index:1}
+th{background:var(--surface2);text-align:left;padding:10px 14px;font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-muted);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--border);white-space:nowrap}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,0.02)}
+.cat-badge{display:inline-block;font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;background:var(--accent-dim);color:var(--accent)}
+.cat-badge.etf{background:var(--green-dim);color:var(--green)}
+.cat-badge.bench{background:rgba(255,255,255,0.06);color:var(--text-muted)}
+.cat-badge.newer{background:var(--amber-dim);color:var(--amber)}
+.negative{color:var(--red)}
+.positive{color:var(--green)}
+
+/* Insight box */
+.insight{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--accent);border-radius:var(--radius-lg);padding:16px 20px;margin-top:20px;font-size:13px;line-height:1.6;color:var(--text-muted)}
+
+/* Bar indicators */
+.bar-cell{position:relative;min-width:120px}
+.bar-bg{position:absolute;left:0;top:50%;transform:translateY(-50%);height:22px;border-radius:3px;opacity:0.25}
+.bar-val{position:relative;z-index:1}
+
+/* Scenario Tab */
+.scenario-controls{display:flex;flex-wrap:wrap;gap:24px;margin-bottom:24px}
+.control-group label{display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:8px}
+.btn-group{display:flex;gap:4px;flex-wrap:wrap}
+.btn-group button{background:var(--surface);border:1px solid var(--border);color:var(--text-muted);font:500 13px/1 'Inter',sans-serif;padding:8px 16px;border-radius:var(--radius);cursor:pointer;transition:all 180ms var(--ease)}
+.btn-group button:hover{border-color:var(--border-hover);color:var(--text)}
+.btn-group button.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.btn-group button:active{transform:scale(0.97)}
+.outcome-cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(260px,100%),1fr));gap:12px;margin-top:20px}
+.outcome-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px 24px;text-align:center}
+.outcome-card .label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:8px}
+.outcome-card .value{font-size:28px;font-weight:700;letter-spacing:-0.02em}
+.outcome-card .sub{font-size:12px;color:var(--text-muted);margin-top:6px}
+.outcome-card.highlight{border-color:var(--accent)}
+.outcome-card.highlight .value{color:var(--accent)}
+.outcome-meta{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr));gap:12px;margin-top:16px}
+.meta-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px}
+.meta-card .label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:4px}
+.meta-card .value{font-size:16px;font-weight:600}
+.scenario-note{font-size:12px;color:var(--text-faint);margin-top:4px}
+
+/* Portfolio Tab */
+.profile-tabs{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.profile-tabs button{background:var(--surface);border:1px solid var(--border);color:var(--text-muted);font:500 13px/1 'Inter',sans-serif;padding:10px 18px;border-radius:var(--radius);cursor:pointer;transition:all 180ms var(--ease);position:relative}
+.profile-tabs button:hover{border-color:var(--border-hover);color:var(--text)}
+.profile-tabs button.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.profile-tabs button:active{transform:scale(0.97)}
+.rec-badge{position:absolute;top:-6px;right:-6px;font-size:9px;background:var(--accent);color:#fff;padding:2px 6px;border-radius:10px;font-weight:600}
+.port-layout{display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start}
+@media(max-width:768px){.port-layout{grid-template-columns:1fr}}
+.donut-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;flex-direction:column;align-items:center}
+.donut-wrap canvas{max-width:200px;max-height:200px}
+.donut-legend{margin-top:16px;width:100%}
+.donut-legend-item{display:flex;align-items:center;gap:8px;font-size:12px;padding:4px 0}
+.donut-legend-item .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Exit Rules */
+.rule-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:12px}
+.rule-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.priority-badge{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:4px}
+.priority-badge.high{background:var(--red-dim);color:var(--red)}
+.priority-badge.medium{background:var(--amber-dim);color:var(--amber)}
+.rule-name{font-weight:600;font-size:14px}
+.rule-body{display:grid;grid-template-columns:1fr 1fr;gap:12px;font-size:13px;color:var(--text-muted)}
+.rule-body dt{font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-faint);margin-bottom:2px}
+@media(max-width:600px){.rule-body{grid-template-columns:1fr}}
+
+/* My Portfolio */
+.mp-cat-bar{display:flex;height:28px;border-radius:var(--radius);overflow:hidden;margin-bottom:24px;gap:2px}
+.mp-cat-seg{display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:#fff;white-space:nowrap;padding:0 8px;min-width:40px}
+.mp-section-title{font-size:15px;font-weight:700;margin-bottom:14px;margin-top:28px;letter-spacing:-0.01em}
+.mp-section-title:first-child{margin-top:0}
+.verdict-badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px}
+.verdict-badge.sb{background:var(--green-dim);color:var(--green)}
+.verdict-badge.buy{background:var(--accent-dim);color:var(--accent)}
+.verdict-badge.hold{background:var(--amber-dim);color:var(--amber)}
+.verdict-badge.sell{background:var(--red-dim);color:var(--red)}
+.verdict-badge.trim{background:var(--orange-dim);color:var(--orange)}
+.verdict-badge.exit{background:var(--red-dim);color:var(--red)}
+.verdict-badge.na{background:rgba(255,255,255,0.06);color:var(--text-muted)}
+.sizing-badge{display:inline-block;font-size:10px;font-weight:600;padding:2px 8px;border-radius:20px;text-transform:uppercase;letter-spacing:0.03em}
+.sizing-badge.uw{background:var(--indigo-dim);color:var(--indigo)}
+.sizing-badge.correct{background:rgba(255,255,255,0.06);color:var(--text-muted)}
+.sizing-badge.ow{background:var(--red-dim);color:var(--red)}
+.alert-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.5;color:var(--text-muted)}
+.alert-card .alert-sev{flex-shrink:0;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:3px 8px;border-radius:4px}
+.alert-card .alert-sev.high{background:var(--red-dim);color:var(--red)}
+.alert-card .alert-sev.medium{background:var(--amber-dim);color:var(--amber)}
+.action-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 18px;margin-bottom:10px;display:flex;align-items:flex-start;gap:12px;font-size:13px;line-height:1.5}
+.action-card .act-icon{flex-shrink:0;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px}
+.action-card .act-icon.trim{background:var(--amber-dim);color:var(--amber)}
+.action-card .act-icon.exit{background:var(--red-dim);color:var(--red)}
+.action-card .act-icon.hold{background:var(--green-dim);color:var(--green)}
+.action-card .act-icon.add{background:var(--accent-dim);color:var(--accent)}
+.action-card .act-title{font-weight:600;color:var(--text);margin-bottom:2px}
+.action-card .act-desc{color:var(--text-muted)}
+.mp-sim-controls{display:flex;flex-wrap:wrap;gap:16px;margin-bottom:16px}
+.mp-sim-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(200px,100%),1fr));gap:12px}
+.mp-sim-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;text-align:center}
+.mp-sim-card .label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:6px}
+.mp-sim-card .value{font-size:22px;font-weight:700;letter-spacing:-0.02em}
+.mp-sim-card .sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.rec-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(340px,100%),1fr));gap:10px}
+
+/* 10-Year Forecast Tab */
+.fc-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;margin-bottom:24px;position:relative}
+.fc-chart-wrap canvas{width:100%!important;height:340px!important}
+.fc-scenario-btns{display:flex;gap:4px;margin-bottom:20px;flex-wrap:wrap}
+.fc-scenario-btns button{background:var(--surface);border:1px solid var(--border);color:var(--text-muted);font:500 13px/1 'Inter',sans-serif;padding:10px 18px;border-radius:var(--radius);cursor:pointer;transition:all 180ms var(--ease)}
+.fc-scenario-btns button:hover{border-color:var(--border-hover);color:var(--text)}
+.fc-scenario-btns button.active{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+.fc-scenario-btns button:active{transform:scale(0.97)}
+.fc-summary-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(min(240px,100%),1fr));gap:12px;margin-bottom:24px}
+.fc-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 22px;text-align:center}
+.fc-summary-card .label{font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:6px}
+.fc-summary-card .value{font-size:26px;font-weight:700;letter-spacing:-0.02em}
+.fc-summary-card .sub{font-size:12px;color:var(--text-muted);margin-top:4px}
+.fc-summary-card.highlight{border-color:var(--accent)}
+.fc-summary-card.highlight .value{color:var(--accent)}
+.fc-asset-row{display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px}
+.fc-asset-row:last-child{border-bottom:none}
+.fc-asset-name{width:140px;font-weight:600;flex-shrink:0}
+.fc-asset-bar{flex:1;height:24px;background:var(--surface2);border-radius:3px;overflow:hidden;position:relative}
+.fc-asset-bar-fill{height:100%;border-radius:3px;transition:width 400ms var(--ease)}
+.fc-asset-vals{width:240px;flex-shrink:0;display:flex;gap:12px;justify-content:flex-end;font-variant-numeric:tabular-nums}
+.fc-asset-vals span{min-width:80px;text-align:right}
+@media(max-width:768px){
+  .fc-asset-vals{width:auto;flex-direction:column;gap:2px;align-items:flex-end}
+  .fc-asset-name{width:100px}
+}
+
+/* ── ALERTS STRIP ── */
+.alerts-strip{flex-shrink:0;background:#1a0000;border-bottom:2px solid var(--red);padding:8px 20px;display:flex;align-items:center;gap:8px;overflow-x:auto;z-index:25;min-height:40px}
+.alerts-strip.hidden{display:none}
+.alert-pill{display:inline-flex;align-items:center;gap:6px;background:rgba(239,68,68,0.15);border:1px solid rgba(239,68,68,0.3);color:#fca5a5;font-size:12px;font-weight:500;padding:4px 12px;border-radius:20px;white-space:nowrap;flex-shrink:0}
+.alert-pill .close-pill{cursor:pointer;opacity:0.6;font-size:14px;line-height:1;margin-left:4px;transition:opacity 180ms}
+.alert-pill .close-pill:hover{opacity:1}
+.alerts-strip .mark-reviewed{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:var(--text-muted);font:500 11px/1 'Inter',sans-serif;padding:5px 14px;border-radius:20px;cursor:pointer;white-space:nowrap;flex-shrink:0;margin-left:auto;transition:all 180ms var(--ease)}
+.alerts-strip .mark-reviewed:hover{background:rgba(255,255,255,0.12);color:var(--text)}
+
+/* ── THESIS CARDS ── */
+.thesis-section{margin-top:32px}
+.thesis-controls{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.thesis-controls button{background:var(--surface);border:1px solid var(--border);color:var(--text-muted);font:500 12px/1 'Inter',sans-serif;padding:7px 14px;border-radius:var(--radius);cursor:pointer;transition:all 180ms var(--ease)}
+.thesis-controls button:hover{border-color:var(--border-hover);color:var(--text)}
+.thesis-card{background:#111;border:1px solid var(--border);border-radius:var(--radius-lg);margin-bottom:12px;overflow:hidden;transition:border-color 180ms var(--ease)}
+.thesis-card:hover{border-color:var(--border-hover)}
+.thesis-header{display:flex;align-items:center;gap:10px;padding:14px 18px;cursor:pointer;flex-wrap:wrap;user-select:none}
+.thesis-header .ticker-tag{font-size:13px;font-weight:700;padding:3px 10px;border-radius:4px;background:rgba(255,255,255,0.08);color:var(--text);letter-spacing:0.02em}
+.thesis-header .company-name{font-size:13px;color:var(--text-muted);flex:1;min-width:80px}
+.thesis-header .conviction-dots{font-size:14px;letter-spacing:2px;margin-left:auto;flex-shrink:0}
+.thesis-header .chevron{font-size:12px;color:var(--text-faint);transition:transform 200ms var(--ease);flex-shrink:0;margin-left:8px}
+.thesis-card.open .thesis-header .chevron{transform:rotate(180deg)}
+.thesis-body{display:none;padding:0 18px 18px;font-size:13px;line-height:1.65;color:var(--text-muted)}
+.thesis-card.open .thesis-body{display:block}
+.thesis-body .thesis-text{font-style:italic;color:var(--text);margin-bottom:14px;padding:10px 14px;background:rgba(255,255,255,0.03);border-radius:var(--radius);border-left:3px solid var(--accent)}
+.thesis-body .drivers-list{list-style:none;margin-bottom:14px}
+.thesis-body .drivers-list li{padding:4px 0;display:flex;align-items:flex-start;gap:8px}
+.thesis-body .drivers-list li::before{content:"";flex-shrink:0}
+.thesis-body .break-list{list-style:none;margin-bottom:14px}
+.thesis-body .break-list li{padding:5px 0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.thesis-body .break-toggle{position:relative;display:inline-block;width:36px;height:20px;flex-shrink:0}
+.thesis-body .break-toggle input{opacity:0;width:0;height:0}
+.thesis-body .break-toggle .slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,0.1);border-radius:20px;transition:0.2s}
+.thesis-body .break-toggle .slider::before{content:"";position:absolute;height:14px;width:14px;left:3px;bottom:3px;background:var(--text-muted);border-radius:50%;transition:0.2s}
+.thesis-body .break-toggle input:checked + .slider{background:var(--red)}
+.thesis-body .break-toggle input:checked + .slider::before{transform:translateX(16px);background:#fff}
+.thesis-body .fundamentals-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}
+@media(max-width:600px){.thesis-body .fundamentals-grid{grid-template-columns:1fr}}
+.thesis-body .fund-row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid rgba(255,255,255,0.04)}
+.thesis-body .fund-label{font-size:12px;color:var(--text-faint)}
+.thesis-body .fund-val{font-size:13px;font-weight:600;font-variant-numeric:tabular-nums}
+.thesis-body .fund-badge{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;margin-left:6px}
+.fund-badge.cheap{background:var(--green-dim);color:var(--green)}
+.fund-badge.fair{background:var(--amber-dim);color:var(--amber)}
+.fund-badge.expensive{background:var(--red-dim);color:var(--red)}
+.fund-badge.strong{background:var(--green-dim);color:var(--green)}
+.fund-badge.weak{background:var(--amber-dim);color:var(--amber)}
+.fund-badge.neg{background:var(--red-dim);color:var(--red)}
+.fund-badge.clean{background:var(--green-dim);color:var(--green)}
+.fund-badge.moderate{background:var(--amber-dim);color:var(--amber)}
+.fund-badge.high-debt{background:var(--red-dim);color:var(--red)}
+.fund-badge.upside{background:var(--green-dim);color:var(--green)}
+.fund-badge.downside{background:var(--red-dim);color:var(--red)}
+.thesis-body .sub-title{font-size:12px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin:14px 0 8px;padding-top:6px;border-top:1px solid var(--border)}
+.thesis-body .sub-title:first-child{margin-top:0;border-top:none;padding-top:0}
+
+/* ── EDIT MODAL ── */
+.edit-fab{position:fixed;bottom:24px;right:24px;z-index:100;background:var(--accent);color:#fff;border:none;font:600 13px/1 'Inter',sans-serif;padding:12px 20px;border-radius:30px;cursor:pointer;box-shadow:0 4px 20px rgba(59,130,246,0.4);transition:all 180ms var(--ease);display:flex;align-items:center;gap:8px}
+.edit-fab:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(59,130,246,0.5)}
+.edit-fab:active{transform:scale(0.97)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:200;align-items:center;justify-content:center;padding:20px}
+.modal-overlay.open{display:flex}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;width:100%;max-width:700px;max-height:85vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:16px 24px;border-bottom:1px solid var(--border);flex-shrink:0}
+.modal-header h2{font-size:16px;font-weight:700}
+.modal-close{background:none;border:none;color:var(--text-muted);font-size:20px;cursor:pointer;padding:4px 8px;border-radius:4px}
+.modal-close:hover{color:var(--text);background:rgba(255,255,255,0.05)}
+.modal-tabs{display:flex;gap:2px;padding:12px 24px 0;flex-shrink:0}
+.modal-tabs button{background:none;border:none;border-bottom:2px solid transparent;color:var(--text-muted);font:500 13px/1 'Inter',sans-serif;padding:8px 16px;cursor:pointer;transition:all 180ms}
+.modal-tabs button.active{color:var(--accent);border-bottom-color:var(--accent)}
+.modal-body{flex:1;overflow-y:auto;padding:16px 24px 24px}
+.modal-body input,.modal-body select,.modal-body textarea{background:var(--bg);border:1px solid var(--border);color:var(--text);font:13px/1.4 'Inter',sans-serif;padding:8px 12px;border-radius:var(--radius);width:100%;transition:border-color 180ms}
+.modal-body input:focus,.modal-body select:focus,.modal-body textarea:focus{outline:none;border-color:var(--accent)}
+.modal-body textarea{resize:vertical;min-height:80px}
+.modal-body label{display:block;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-faint);margin-bottom:4px;margin-top:12px}
+.modal-body label:first-child{margin-top:0}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;padding:16px 24px;border-top:1px solid var(--border);flex-shrink:0}
+.modal-actions button{font:500 13px/1 'Inter',sans-serif;padding:9px 20px;border-radius:var(--radius);cursor:pointer;transition:all 180ms var(--ease);border:1px solid var(--border)}
+.modal-actions .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.modal-actions .btn-primary:hover{opacity:0.9}
+.modal-actions .btn-secondary{background:var(--surface);color:var(--text-muted)}
+.modal-actions .btn-secondary:hover{color:var(--text);border-color:var(--border-hover)}
+.modal-edit-table{width:100%;font-size:13px;border-collapse:collapse}
+.modal-edit-table th{text-align:left;padding:6px 8px;font-size:11px;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-faint);border-bottom:1px solid var(--border)}
+.modal-edit-table td{padding:4px 4px}
+.modal-edit-table input{padding:6px 8px;font-size:13px}
+.modal-edit-table .del-btn{background:none;border:none;color:var(--red);cursor:pointer;font-size:16px;padding:4px 8px;opacity:0.6}
+.modal-edit-table .del-btn:hover{opacity:1}
+.export-box{background:var(--bg);border:1px solid var(--border);border-radius:var(--radius);padding:12px;font:12px/1.5 monospace;color:var(--text-muted);max-height:400px;overflow:auto;white-space:pre-wrap;word-break:break-all;user-select:all}
+.export-note{font-size:12px;color:var(--text-faint);margin-top:12px;line-height:1.5;padding:10px;background:rgba(59,130,246,0.06);border-radius:var(--radius);border-left:3px solid var(--accent)}
+.conviction-slider{display:flex;align-items:center;gap:12px;margin-top:4px}
+.conviction-slider input[type=range]{flex:1;accent-color:var(--accent)}
+.conviction-slider .conv-val{font-weight:700;font-size:16px;width:24px;text-align:center}
+
+/* Animations */
+@media(prefers-reduced-motion:no-preference){
+  .tab.active{animation:fadeIn 200ms var(--ease)}
+  @keyframes fadeIn{from{opacity:0}to{opacity:1}}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="alerts-strip hidden" id="alertsStrip"></div>
+  <header class="topbar">
+    <div class="logo">
+      <svg width="22" height="22" viewBox="0 0 22 22" fill="none"><rect x="1" y="1" width="9" height="9" rx="2" fill="#3b82f6"/><rect x="12" y="1" width="9" height="9" rx="2" fill="#3b82f6" opacity="0.5"/><rect x="1" y="12" width="9" height="9" rx="2" fill="#3b82f6" opacity="0.5"/><rect x="12" y="12" width="9" height="9" rx="2" fill="#3b82f6" opacity="0.25"/></svg>
+      AI Market Strategy
+    </div>
+    <nav class="nav" id="nav"></nav>
+  </header>
+  <main class="main" id="main"></main>
+</div>
+<button class="edit-fab" onclick="openEditModal()">&#9881; Edit Portfolio</button>
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <div class="modal-header"><h2>Edit Portfolio</h2><button class="modal-close" onclick="closeEditModal()">&times;</button></div>
+    <div class="modal-tabs" id="modalTabs"></div>
+    <div class="modal-body" id="modalBody"></div>
+    <div class="modal-actions" id="modalActions"></div>
+  </div>
+</div>
+
+<script>
+// ╔══════════════════════════════════════════════╗
+// ║  PORTFOLIO CONFIG — EDIT THIS TO UPDATE      ║
+// ║  YOUR PORTFOLIO. NO OTHER CODE CHANGES NEEDED║
+// ╚══════════════════════════════════════════════╝
+const PORTFOLIO_CONFIG = {
+  holdings: [
+    { ticker:"AMZN",  name:"Amazon",              shares:174.34, price:217.83, category:"AI Platforms",      conviction:4 },
+    { ticker:"MSFT",  name:"Microsoft",            shares:92.02,  price:444.97, category:"AI Platforms",      conviction:5 },
+    { ticker:"NVDA",  name:"Nvidia",               shares:162.80, price:178.89, category:"AI Infrastructure", conviction:5 },
+    { ticker:"AVGO",  name:"Broadcom",             shares:82.70,  price:322.74, category:"AI Infrastructure", conviction:4 },
+    { ticker:"GOOGL", name:"Alphabet",             shares:84.42,  price:306.12, category:"AI Platforms",      conviction:4 },
+    { ticker:"CEG",   name:"Constellation Energy", shares:69.34,  price:295.45, category:"Energy/Power",      conviction:4 },
+    { ticker:"META",  name:"Meta Platforms",        shares:34.77,  price:644.44, category:"AI Platforms",      conviction:4 },
+    { ticker:"TSLA",  name:"Tesla",                shares:53.78,  price:429.67, category:"AI Platforms",      conviction:2 },
+    { ticker:"ETN",   name:"Eaton",                shares:57.27,  price:342.29, category:"Energy/Power",      conviction:3 },
+    { ticker:"PLTR",  name:"Palantir",             shares:151.22, price:153.12, category:"AI Platforms",      conviction:3 },
+    { ticker:"VRT",   name:"Vertiv",               shares:43.40,  price:183.40, category:"AI Infrastructure", conviction:3 },
+    { ticker:"MU",    name:"Micron",               shares:24.50,  price:392.46, category:"AI Infrastructure", conviction:4 },
+    { ticker:"INTC",  name:"Intel",                shares:195.60, price:45.60,  category:"AI Infrastructure", conviction:1 },
+    { ticker:"CRWV",  name:"CoreWeave",            shares:85.57,  price:78.44,  category:"AI Infrastructure", conviction:2 },
+    { ticker:"APLD",  name:"Applied Digital",      shares:244.60, price:26.16,  category:"AI Infrastructure", conviction:2 },
+    { ticker:"ASML",  name:"ASML",                 shares:5.80,   price:1459.12,category:"AI Infrastructure", conviction:5 },
+    { ticker:"IREN",  name:"IREN",                 shares:162.00, price:44.24,  category:"AI Infrastructure", conviction:2 },
+    { ticker:"ANET",  name:"Arista Networks",      shares:169.87, price:129.67, category:"AI Infrastructure", conviction:4 },
+    { ticker:"COPX",  name:"Global X Copper ETF",  shares:225.01, price:84.82,  category:"Commodities",       conviction:3 },
+  ],
+  theses: {
+    MSFT: {
+      thesis: "Microsoft is the most durable AI compounder \u2014 Azure\u2019s 31% growth, Copilot integration across 300M Office seats, and OpenAI partnership create compounding moats that no other platform can replicate.",
+      keyDrivers: ["Azure revenue growth stays above 25% YoY", "Operating margins hold above 43%", "Copilot adoption accelerates across enterprise"],
+      breakConditions: [
+        { label:"Azure growth drops below 20% for 2 consecutive quarters", type:"manual", value:0 },
+        { label:"Op margin compresses below 40%", type:"manual", value:0 },
+        { label:"Price drops below $350", type:"price_below", value:350 }
+      ],
+      fundamentals: { peRatio:35, revenueGrowth:16, fcfMargin:34, operatingMargin:46, debtEbitda:0.5, analystTarget:510 },
+      verdict: "STRONG BUY",
+      sizing: "CORRECT"
+    },
+    NVDA: {
+      thesis: "NVIDIA owns the AI training and inference stack end-to-end \u2014 CUDA lock-in, Blackwell/GB200 supercycle, and 60%+ operating margins make this the defining infrastructure company of the AI era.",
+      keyDrivers: ["Data centre revenue grows above 100% YoY (H100/B200 demand)", "Operating margins stay above 55%", "No credible alternative to CUDA emerges in the next 2 years"],
+      breakConditions: [
+        { label:"Data centre revenue growth drops below 50% for 2 consecutive quarters", type:"manual", value:0 },
+        { label:"AMD/Intel capture >20% of AI training market", type:"manual", value:0 },
+        { label:"Price drops below $120", type:"price_below", value:120 }
+      ],
+      fundamentals: { peRatio:38, revenueGrowth:122, fcfMargin:55, operatingMargin:62, debtEbitda:0, analystTarget:220 },
+      verdict: "STRONG BUY",
+      sizing: "CORRECT"
+    },
+    AVGO: {
+      thesis: "Broadcom is the best risk-adjusted AI infrastructure play \u2014 custom AI silicon (XPUs for Google/Meta/Apple), networking dominance, and VMware integration create highly recurring, high-margin revenue streams.",
+      keyDrivers: ["AI revenue (XPU/networking) exceeds $12B annualised run rate", "VMware integration drives margins above 65%", "Hyperscaler XPU TAM expands"],
+      breakConditions: [
+        { label:"Key hyperscaler (Google/Meta) moves away from custom silicon", type:"manual", value:0 },
+        { label:"VMware churn exceeds 15%", type:"manual", value:0 },
+        { label:"Price drops below $250", type:"price_below", value:250 }
+      ],
+      fundamentals: { peRatio:37, revenueGrowth:51, fcfMargin:46, operatingMargin:69, debtEbitda:2.1, analystTarget:380 },
+      verdict: "STRONG BUY",
+      sizing: "CORRECT"
+    },
+    GOOGL: {
+      thesis: "Alphabet is a deeply undervalued AI platform \u2014 Gemini, TPU infrastructure, YouTube, Waymo, and Google Cloud growing 30%+ make this the cheapest AI megacap on fundamentals.",
+      keyDrivers: ["Google Cloud revenue growth stays above 25%", "Search market share holds above 85% despite AI competitors", "Waymo commercialisation accelerates"],
+      breakConditions: [
+        { label:"Search market share drops below 85% for 2 consecutive quarters", type:"manual", value:0 },
+        { label:"Cloud growth decelerates below 20%", type:"manual", value:0 },
+        { label:"Price drops below $220", type:"price_below", value:220 }
+      ],
+      fundamentals: { peRatio:22, revenueGrowth:14, fcfMargin:26, operatingMargin:32, debtEbitda:0, analystTarget:220 },
+      verdict: "STRONG BUY",
+      sizing: "CORRECT"
+    },
+    AMZN: {
+      thesis: "Amazon is the cloud-and-commerce compounding machine \u2014 AWS at 19% of revenue but 60%+ of operating profit, with AI inference becoming AWS\u2019s next growth leg via Bedrock and Trainium chips.",
+      keyDrivers: ["AWS revenue growth stays above 18% YoY", "Operating income continues expanding (target 10%+ EBIT margin)", "Advertising revenue sustains 20%+ growth"],
+      breakConditions: [
+        { label:"AWS growth drops below 15% for 2 consecutive quarters", type:"manual", value:0 },
+        { label:"Price drops below $175", type:"price_below", value:175 }
+      ],
+      fundamentals: { peRatio:38, revenueGrowth:11, fcfMargin:8, operatingMargin:11, debtEbitda:0.8, analystTarget:280 },
+      verdict: "BUY",
+      sizing: "CORRECT"
+    },
+    META: {
+      thesis: "Meta has the largest AI distribution network on earth \u2014 3.3B daily active users, best-in-class ad targeting improved by AI, and a Llama open-source strategy that builds ecosystem without capex waste.",
+      keyDrivers: ["Ad revenue growth stays above 15% YoY", "Llama adoption grows developer ecosystem", "Reality Labs losses stabilise or narrow"],
+      breakConditions: [
+        { label:"Ad revenue growth drops below 10%", type:"manual", value:0 },
+        { label:"Price drops below $500", type:"price_below", value:500 },
+        { label:"Reality Labs losses exceed $20B annually", type:"manual", value:0 }
+      ],
+      fundamentals: { peRatio:28, revenueGrowth:21, fcfMargin:38, operatingMargin:42, debtEbitda:0, analystTarget:780 },
+      verdict: "BUY",
+      sizing: "CORRECT"
+    },
+    CEG: {
+      thesis: "Constellation Energy is the nuclear renaissance play \u2014 only US nuclear fleet operator positioned for AI data centre power demand, with Microsoft 20-year PPA providing revenue visibility unmatched in utilities.",
+      keyDrivers: ["Nuclear PPA deals with hyperscalers continue (post-Microsoft deal)", "Three Mile Island restart runs on schedule", "Federal nuclear support policy remains intact"],
+      breakConditions: [
+        { label:"Microsoft or major hyperscaler cancels/renegotiates PPA", type:"manual", value:0 },
+        { label:"Nuclear policy reversal at federal level", type:"manual", value:0 },
+        { label:"Price drops below $220", type:"price_below", value:220 }
+      ],
+      fundamentals: { peRatio:38, revenueGrowth:7, fcfMargin:12, operatingMargin:18, debtEbitda:1.8, analystTarget:350 },
+      verdict: "BUY",
+      sizing: "CORRECT"
+    },
+    ETN: {
+      thesis: "Eaton is the electrification and data centre power infrastructure compounder \u2014 electrical components for every new data centre built, combined with grid upgrade tailwinds from AI power demand.",
+      keyDrivers: ["Data centre orders grow above 20% YoY", "Electrical segment margins hold above 22%", "Grid investment cycle continues"],
+      breakConditions: [
+        { label:"Data centre capex cycle slows materially", type:"manual", value:0 },
+        { label:"Price drops below $280", type:"price_below", value:280 }
+      ],
+      fundamentals: { peRatio:30, revenueGrowth:8, fcfMargin:14, operatingMargin:22, debtEbitda:1.5, analystTarget:415 },
+      verdict: "BUY",
+      sizing: "CORRECT"
+    },
+    ANET: {
+      thesis: "Arista is the networking backbone of AI infrastructure \u2014 spine-and-leaf architecture dominates hyperscaler networks, zero debt, 64% gross margins, and AI cluster interconnect becoming a new growth vector.",
+      keyDrivers: ["Revenue growth stays above 20% YoY", "Gross margins hold above 60%", "Wins AI cluster networking deals at hyperscalers"],
+      breakConditions: [
+        { label:"Cisco or a startup displaces Arista in hyperscaler networking", type:"manual", value:0 },
+        { label:"Revenue growth drops below 15%", type:"manual", value:0 },
+        { label:"Price drops below $90", type:"price_below", value:90 }
+      ],
+      fundamentals: { peRatio:48, revenueGrowth:20, fcfMargin:35, operatingMargin:38, debtEbitda:0, analystTarget:160 },
+      verdict: "STRONG BUY",
+      sizing: "CORRECT"
+    },
+    ASML: {
+      thesis: "ASML is the only company on earth that can make the machines that make the chips \u2014 EUV lithography monopoly means every node advancement in AI chips (NVDA, TSMC) depends entirely on ASML.",
+      keyDrivers: ["EUV/High-NA EUV order book grows above \u20ac36B", "TSMC/Samsung advanced node capacity expansions continue", "Export controls don\u2019t expand beyond China"],
+      breakConditions: [
+        { label:"Export controls extended to restrict all advanced node sales", type:"manual", value:0 },
+        { label:"Order book cancellations exceed 15%", type:"manual", value:0 },
+        { label:"Price drops below $700", type:"price_below", value:700 }
+      ],
+      fundamentals: { peRatio:28, revenueGrowth:7, fcfMargin:24, operatingMargin:32, debtEbitda:0, analystTarget:1100 },
+      verdict: "STRONG BUY",
+      sizing: "UNDERWEIGHT"
+    },
+    PLTR: {
+      thesis: "Palantir is the government-and-enterprise AI platform with a 20-year head start on ontological data fusion \u2014 AIP bootcamp model is creating a genuinely new enterprise software sales motion.",
+      keyDrivers: ["US Commercial revenue growth stays above 40% YoY", "Government contracts expand (defence AI)", "AIP platform net dollar retention stays above 115%"],
+      breakConditions: [
+        { label:"US Commercial growth drops below 25%", type:"manual", value:0 },
+        { label:"Government contract losses materially reduce backlog", type:"manual", value:0 },
+        { label:"Price drops below $70", type:"price_below", value:70 }
+      ],
+      fundamentals: { peRatio:218, revenueGrowth:36, fcfMargin:20, operatingMargin:16, debtEbitda:0, analystTarget:105 },
+      verdict: "HOLD",
+      sizing: "OVERWEIGHT"
+    },
+    MU: {
+      thesis: "Micron is the AI memory supercycle play \u2014 HBM3E adoption by NVDA (H100/B200), DDR5 transition, and structural DRAM oligopoly with Samsung make this a cyclical with AI structural tailwinds.",
+      keyDrivers: ["HBM3E revenue reaches $5B+ annualised by end of 2025", "DRAM ASPs recover from 2024 lows", "NVDA maintains Micron as primary HBM supplier"],
+      breakConditions: [
+        { label:"DRAM/NAND oversupply re-emerges", type:"manual", value:0 },
+        { label:"HBM market share lost to Samsung or SK Hynix", type:"manual", value:0 },
+        { label:"Price drops below $70", type:"price_below", value:70 }
+      ],
+      fundamentals: { peRatio:14, revenueGrowth:84, fcfMargin:-5, operatingMargin:22, debtEbitda:0.8, analystTarget:130 },
+      verdict: "BUY",
+      sizing: "UNDERWEIGHT"
+    },
+    TSLA: {
+      thesis: "Tesla optionality play on autonomous vehicles and Optimus robotics \u2014 current automotive business is declining but FSD and robotaxi represent a potential category-defining platform if execution follows.",
+      keyDrivers: ["FSD unsupervised approval in key US markets by end of 2025", "Optimus production ramp hits 1000+ units by end of 2025", "Automotive gross margins recover above 20%"],
+      breakConditions: [
+        { label:"FSD regulatory approval delayed beyond 2026", type:"manual", value:0 },
+        { label:"Auto gross margin stays below 15% for 3 quarters", type:"manual", value:0 },
+        { label:"Price drops below $250", type:"price_below", value:250 },
+        { label:"Revenue declines for 3 consecutive quarters", type:"manual", value:0 }
+      ],
+      fundamentals: { peRatio:241, revenueGrowth:-3, fcfMargin:3, operatingMargin:6, debtEbitda:0, analystTarget:390 },
+      verdict: "TRIM",
+      sizing: "OVERWEIGHT"
+    },
+    VRT: {
+      thesis: "Vertiv is the data centre thermal and power management infrastructure play \u2014 liquid cooling demand explodes with GPU density, Vertiv is directly correlated to every data centre built.",
+      keyDrivers: ["Liquid cooling order book grows above 50% YoY", "Operating margins expand above 18%", "AI data centre buildout continues at current pace"],
+      breakConditions: [
+        { label:"AI capex cycle decelerates sharply", type:"manual", value:0 },
+        { label:"Margins compress below 14%", type:"manual", value:0 },
+        { label:"Price drops below $100", type:"price_below", value:100 }
+      ],
+      fundamentals: { peRatio:35, revenueGrowth:19, fcfMargin:10, operatingMargin:16, debtEbitda:2.2, analystTarget:155 },
+      verdict: "BUY",
+      sizing: "CORRECT"
+    },
+    INTC: {
+      thesis: "Intel is a turnaround bet on foundry and x86 resilience \u2014 IFS (Intel Foundry Services) represents a potential re-rating catalyst if 18A node performs, but current fundamentals are deeply broken.",
+      keyDrivers: ["18A node yields reach commercial viability (>50% yield)", "IFS wins at least one major external customer", "Free cash flow returns to positive by Q4 2025"],
+      breakConditions: [
+        { label:"18A node delayed beyond Q1 2026", type:"manual", value:0 },
+        { label:"FCF stays negative for another year", type:"manual", value:0 },
+        { label:"Further market share losses in server CPUs", type:"manual", value:0 },
+        { label:"Price drops below $18", type:"price_below", value:18 }
+      ],
+      fundamentals: { peRatio:-8, revenueGrowth:-2, fcfMargin:-15, operatingMargin:-10, debtEbitda:3.2, analystTarget:27 },
+      verdict: "EXIT",
+      sizing: "OVERWEIGHT"
+    },
+    CRWV: {
+      thesis: "CoreWeave is a pure-play AI compute hyperscaler \u2014 GPU cloud infrastructure built specifically for AI workloads, with Microsoft as anchor customer. Speculative but the revenue trajectory is exceptional.",
+      keyDrivers: ["Revenue run rate hits $5B+ in 2025", "Microsoft contract renewals and expansions", "Path to profitability becomes visible (EBITDA positive)"],
+      breakConditions: [
+        { label:"Microsoft contract not renewed or significantly reduced", type:"manual", value:0 },
+        { label:"Debt/equity ratio deteriorates further", type:"manual", value:0 },
+        { label:"Price drops below $40", type:"price_below", value:40 }
+      ],
+      fundamentals: { peRatio:-5, revenueGrowth:420, fcfMargin:-180, operatingMargin:-45, debtEbitda:8.5, analystTarget:55 },
+      verdict: "HOLD",
+      sizing: "CORRECT"
+    },
+    APLD: {
+      thesis: "Applied Digital is a speculative AI data centre infrastructure play \u2014 early mover in purpose-built AI compute campuses, but deeply loss-making and highly leveraged at current scale.",
+      keyDrivers: ["Signed capacity utilisation exceeds 80% across campuses", "Moves to operating cash flow positive", "Secures additional hyperscaler anchor tenants"],
+      breakConditions: [
+        { label:"Operating cash flow stays negative beyond Q2 2025", type:"manual", value:0 },
+        { label:"Cannot refinance existing debt", type:"manual", value:0 },
+        { label:"Price drops below $8", type:"price_below", value:8 }
+      ],
+      fundamentals: { peRatio:-3, revenueGrowth:195, fcfMargin:-85, operatingMargin:-62, debtEbitda:12, analystTarget:11 },
+      verdict: "HOLD",
+      sizing: "CORRECT"
+    },
+    IREN: {
+      thesis: "IREN (formerly Iris Energy) is a bitcoin mining and AI compute infrastructure operator \u2014 transitioning from pure BTC mining to AI GPU cloud, leveraged to both Bitcoin price and AI compute demand.",
+      keyDrivers: ["AI compute revenue exceeds BTC mining revenue by end of 2025", "Hashrate expansion stays on schedule", "BTC price stays above $60,000"],
+      breakConditions: [
+        { label:"BTC price drops below $50,000 for sustained period", type:"manual", value:0 },
+        { label:"AI compute revenue ramp stalls", type:"manual", value:0 },
+        { label:"Price drops below $8", type:"price_below", value:8 }
+      ],
+      fundamentals: { peRatio:-12, revenueGrowth:87, fcfMargin:-30, operatingMargin:-18, debtEbitda:4.1, analystTarget:15 },
+      verdict: "HOLD",
+      sizing: "CORRECT"
+    },
+    COPX: {
+      thesis: "Copper is the raw material of electrification \u2014 every data centre, EV, and grid upgrade requires copper. COPX gives diversified exposure to copper miners with leverage to the commodity price cycle.",
+      keyDrivers: ["Copper price stays above $3.50/lb", "Data centre and grid investment continues", "Supply deficit in copper market widens"],
+      breakConditions: [
+        { label:"Copper price drops below $3.20/lb for 60+ days", type:"manual", value:0 },
+        { label:"Global manufacturing PMI stays below 48 for 3 months", type:"manual", value:0 }
+      ],
+      fundamentals: { peRatio:12, revenueGrowth:8, fcfMargin:14, operatingMargin:22, debtEbitda:0.9, analystTarget:95 },
+      verdict: "BUY",
+      sizing: "CORRECT"
+    }
+  }
+};
+
+// ── EXISTING DATA (unchanged) ──
+const TABS = ['Universe','Backtests','Scenarios','My Portfolio','Model Portfolios','Exit Rules','10-Year Forecast'];
+const UNIVERSE = [
+  ['NVDA','AI Leader',71.1,45.7,-66.0,1.56],
+  ['PLTR','AI Broader',64.6,72.4,-82.1,0.89],
+  ['AMD','AI Leader',55.7,56.6,-64.0,0.98],
+  ['AVGO','AI Leader',36.1,37.2,-40.7,0.97],
+  ['ARM','AI Newer',35.1,73.7,-51.6,0.48],
+  ['ASML','AI Broader',31.2,35.7,-56.4,0.87],
+  ['SMH','ETF',31.4,28.7,-44.5,1.09],
+  ['TSM','AI Leader',31.2,30.3,-55.9,1.03],
+  ['SOXX','ETF',28.1,29.0,-44.9,0.97],
+  ['SMCI','AI Broader',25.8,71.2,-83.7,0.36],
+  ['MRVL','AI Broader',23.6,45.6,-60.4,0.52],
+  ['GOOGL','AI Leader',23.9,27.4,-41.9,0.87],
+  ['MSFT','AI Leader',22.4,22.9,-35.5,0.97],
+  ['AMZN','AI Leader',21.9,29.8,-54.8,0.74],
+  ['QQQ','ETF',19.1,20.0,-35.5,0.95],
+  ['META','AI Leader',19.5,35.7,-76.0,0.55],
+  ['SPY','Benchmark',13.1,17.0,-32.2,0.77],
+  ['CRM','AI Broader',10.6,33.8,-58.3,0.31],
+  ['SNOW','AI Newer',-6.3,55.0,-72.3,-0.11],
+];
+const BACKTESTS = [
+  ['Momentum AI (Top 3)',1628,32.9,27.0,-39.4,1.22,-36.9],
+  ['AI Overweight (60/40)',1083,28.0,21.6,-39.1,1.29,-36.6],
+  ['QQQ Benchmark',470,19.0,20.0,-35.5,0.95,-33.6],
+  ['Market+AI Overlay (80/20)',462,18.8,18.3,-31.3,1.03,-25.6],
+  ['SPY Benchmark',238,12.9,17.0,-32.2,0.76,-19.8],
+];
+const SCENARIOS = {
+  supercycle:{label:'AI Supercycle',prob:30,desc:'AI leaders 20%/yr, market 7%/yr'},
+  normalisation:{label:'AI Normalisation',prob:45,desc:'AI leaders 12%/yr, market 8%/yr'},
+  disappointment:{label:'AI Disappointment',prob:25,desc:'AI leaders 3%/yr, market 6%/yr'},
+};
+const ALLOCS = ['70/30','50/50','30/70'];
+const OUTCOMES = {
+  supercycle:  {0:[4407,1694,11686],1:[3702,1637,8701],2:[3051,1463,6261]},
+  normalisation:{0:[2888,1269,6573],1:[2792,1351,5761],2:[2652,1388,5024]},
+  disappointment:{0:[1202,383,3760],1:[1438,547,3631],2:[1587,693,3750]},
+};
+const PORTFOLIOS = {
+  conservative:{
+    label:'Conservative AI',pct:20,
+    ai:[['SMH',8,96],['QQQ',7,84],['NVDA',3,36],['MSFT',2,24]],
+    core:[['SPY/VWRL',45,540],['Bonds',20,240],['Gold',8,96],['Cash',7,84]],
+  },
+  balanced:{
+    label:'Balanced AI',pct:35,recommended:true,
+    ai:[['NVDA',7,84],['MSFT',5,60],['SMH',5,60],['GOOGL',4,48],['AVGO',4,48],['TSM',3,36],['AMD',3,36],['META',2,24],['AMZN',2,24]],
+    core:[['SPY/VWRL',35,420],['Bonds',15,180],['Gold',5,60],['Cash',5,60],['Commodities',5,60]],
+  },
+  aggressive:{
+    label:'Aggressive AI',pct:50,
+    ai:[['NVDA',10,120],['MSFT',6,72],['GOOGL',5,60],['AVGO',5,60],['TSM',5,60],['AMD',5,60],['META',4,48],['AMZN',3,36],['SMCI',2,24],['PLTR',2,24],['MRVL',2,24],['ASML',1,12]],
+    core:[['SPY/VWRL',28,336],['Bonds',10,120],['Gold',5,60],['Cash',4,48],['Commodities',3,36]],
+  },
+};
+const MP_ISSUES = [
+  {sev:'high',title:'Extreme AI Concentration',desc:'84% in AI. If AI spending slows, nearly everything draws down.'},
+  {sev:'high',title:'Zero Diversification Outside Tech/AI',desc:'No healthcare, financials, consumer staples, or real estate.'},
+  {sev:'high',title:'TSLA Valuation Extreme',desc:'P/E 241x with declining revenue and earnings.'},
+  {sev:'medium',title:'Speculative Names Without Earnings',desc:'CRWV + APLD + IREN + INTC = 8% combined.'},
+  {sev:'medium',title:'PLTR Valuation Rich',desc:'P/E 218x, great growth but perfection priced in.'},
+];
+const MP_RECS = [
+  {icon:'trim',title:'TRIM TSLA',desc:'Trim from ~6% to 2\u20133%. P/E 241x with declining revenue.'},
+  {icon:'trim',title:'TRIM PLTR',desc:'Trim from ~6% to 4%. P/E 218x leaves no margin of safety.'},
+  {icon:'exit',title:'EXIT INTC',desc:'Persistent losses, negative FCF, shrinking market share.'},
+  {icon:'exit',title:'REDUCE APLD',desc:'Deepening losses, negative OCF, dilution risk.'},
+  {icon:'hold',title:'HOLD/ADD NVDA',desc:'Core position well-sized. 88% rev CAGR, 60% margins.'},
+  {icon:'hold',title:'HOLD MSFT',desc:'Blue chip. 15% growth, 46% margins, $71B FCF.'},
+  {icon:'add',title:'ADD ASML',desc:'Only 2.3% \u2014 monopoly EUV supplier, add to 4\u20135%.'},
+  {icon:'add',title:'ADD ANET',desc:'Excellent quality, zero debt. Could add to 7\u20138%.'},
+  {icon:'add',title:'ADD NEW',desc:'Diversifiers \u2014 UNH/LLY for healthcare, V/JPM for financials, COST/PG for staples.'},
+];
+const EXIT_RULES = [
+  {priority:'high',name:'Single-Name Cap',trigger:'Any AI name >15% of NW',action:'Trim to 10\u201312%'},
+  {priority:'high',name:'AI Sleeve Max',trigger:'Total AI >55%',action:'Rebalance quarterly'},
+  {priority:'high',name:'Drawdown Breaker',trigger:'Portfolio DD >25% AND AI >60% of loss',action:'Rotate 10\u201315% to cash'},
+  {priority:'high',name:'Downside Alert',trigger:'Simulated P10 <\u00a31.2M',action:'Reduce AI by 10%'},
+  {priority:'high',name:'Base Protection',trigger:'Always',action:'Keep 40% minimum in boring assets (bonds/index/gold/cash)'},
+  {priority:'medium',name:'Outperformance Check',trigger:'AI 3Y return >2.5\u00d7 SPY 3Y',action:'Reduce 5%/quarter'},
+  {priority:'medium',name:'Valuation Guard',trigger:'Avg AI P/E >50\u00d7',action:'Trim 2\u20133%/quarter'},
+  {priority:'medium',name:'Annual Review',trigger:'Every January',action:'Rerun model, reassess scenarios'},
+];
+
+// ── 10-YEAR FORECAST DATA ──
+const FC_DATA = {
+  bull:{label:'Bull Case',prob:25,desc:'AI supercycle, crypto adoption, strong global growth',yearly:[{y:0,med:1350000,p10:1350000,p90:1350000},{y:1,med:1523288,p10:1370014,p90:1732076},{y:2,med:1726684,p10:1473347,p90:2122310},{y:3,med:1962850,p10:1597641,p90:2617968},{y:4,med:2244826,p10:1753599,p90:3221856},{y:5,med:2573618,p10:1929045,p90:4025822},{y:6,med:2954603,p10:2120402,p90:5032401},{y:7,med:3399380,p10:2341187,p90:6324292},{y:8,med:3974382,p10:2583096,p90:8028961},{y:9,med:4608354,p10:2858291,p90:10276736},{y:10,med:5414676,p10:3188759,p90:13389341}],assets:[{name:'AI/Tech Stocks',start:324000,med:1122735,p10:461756,p90:2834741,cagr:13.2,color:'#3b82f6'},{name:'Non-AI Stocks',start:135000,med:276792,p10:172714,p90:442474,cagr:7.4,color:'#60a5fa'},{name:'Int\'l Stocks',start:54000,med:105685,p10:64071,p90:171505,cagr:6.9,color:'#93c5fd'},{name:'Cyprus Land',start:337000,med:815789,p10:568048,p90:1184067,cagr:9.2,color:'#22c55e'},{name:'Bonds',start:162000,med:240363,p10:175802,p90:325932,cagr:4.0,color:'#a3a3a3'},{name:'Bitcoin',start:94500,med:698282,p10:97414,p90:5395137,cagr:22.2,color:'#f59e0b'},{name:'Gold',start:67500,med:195571,p10:108102,p90:363367,cagr:11.2,color:'#eab308'},{name:'Watches',start:67500,med:131652,p10:95427,p90:183447,cagr:6.9,color:'#8b5cf6'},{name:'Cash',start:108000,med:158832,p10:146629,p90:172093,cagr:3.9,color:'#6b7280'}],final:{p10:3188759,med:5414676,mean:7741802,p90:13389341}},
+  base:{label:'Base Case',prob:50,desc:'AI normalises, markets at historical averages, moderate inflation',yearly:[{y:0,med:1350000,p10:1350000,p90:1350000},{y:1,med:1453081,p10:1325405,p90:1610503},{y:2,med:1566762,p10:1378286,p90:1826801},{y:3,med:1689185,p10:1443019,p90:2056017},{y:4,med:1822258,p10:1514004,p90:2327420},{y:5,med:1962078,p10:1598359,p90:2603658},{y:6,med:2109288,p10:1684631,p90:2934491},{y:7,med:2275994,p10:1782136,p90:3302275},{y:8,med:2463515,p10:1882635,p90:3697602},{y:9,med:2646056,p10:1993856,p90:4155024},{y:10,med:2847825,p10:2113661,p90:4649146}],assets:[{name:'AI/Tech Stocks',start:324000,med:772693,p10:371843,p90:1657510,cagr:9.1,color:'#3b82f6'},{name:'Non-AI Stocks',start:135000,med:241195,p10:153698,p90:383143,cagr:6.0,color:'#60a5fa'},{name:'Int\'l Stocks',start:54000,med:94412,p10:58143,p90:155093,cagr:5.7,color:'#93c5fd'},{name:'Cyprus Land',start:337000,med:661017,p10:474193,p90:929854,cagr:7.0,color:'#22c55e'},{name:'Bonds',start:162000,med:250218,p10:186744,p90:333478,cagr:4.4,color:'#a3a3a3'},{name:'Bitcoin',start:94500,med:153611,p10:28891,p90:829605,cagr:5.0,color:'#f59e0b'},{name:'Gold',start:67500,med:135706,p10:78429,p90:237131,cagr:7.2,color:'#eab308'},{name:'Watches',start:67500,med:110481,p10:80919,p90:152004,cagr:5.1,color:'#8b5cf6'},{name:'Cash',start:108000,med:153207,p10:144735,p90:162149,cagr:3.6,color:'#6b7280'}],final:{p10:2113661,med:2847825,mean:3241311,p90:4649146}},
+  bear:{label:'Bear Case',prob:25,desc:'AI disappointment, recession, crypto winter, geopolitical stress',yearly:[{y:0,med:1350000,p10:1350000,p90:1350000},{y:1,med:1373954,p10:1232505,p90:1579294},{y:2,med:1404967,p10:1215018,p90:1705017},{y:3,med:1441373,p10:1212938,p90:1818158},{y:4,med:1473806,p10:1223012,p90:1922243},{y:5,med:1512272,p10:1241811,p90:2030168},{y:6,med:1558451,p10:1257080,p90:2121181},{y:7,med:1606569,p10:1280228,p90:2254169},{y:8,med:1654550,p10:1309160,p90:2333296},{y:9,med:1714134,p10:1337180,p90:2435544},{y:10,med:1769063,p10:1373750,p90:2537813}],assets:[{name:'AI/Tech Stocks',start:324000,med:360199,p10:154159,p90:839665,cagr:1.1,color:'#3b82f6'},{name:'Non-AI Stocks',start:135000,med:180419,p10:101613,p90:327282,cagr:2.9,color:'#60a5fa'},{name:'Int\'l Stocks',start:54000,med:68295,p10:36361,p90:130270,cagr:2.4,color:'#93c5fd'},{name:'Cyprus Land',start:337000,med:476283,p10:319963,p90:718654,cagr:3.5,color:'#22c55e'},{name:'Bonds',start:162000,med:256948,p10:180089,p90:366101,cagr:4.7,color:'#a3a3a3'},{name:'Bitcoin',start:94500,med:46263,p10:5924,p90:372700,cagr:-6.9,color:'#f59e0b'},{name:'Gold',start:67500,med:173174,p10:91269,p90:341456,cagr:9.9,color:'#eab308'},{name:'Watches',start:67500,med:90741,p10:63840,p90:129849,cagr:3.0,color:'#8b5cf6'},{name:'Cash',start:108000,med:143093,p10:133453,p90:153170,cagr:2.8,color:'#6b7280'}],final:{p10:1373750,med:1769063,mean:1916051,p90:2537813}},
+  pw:{label:'Probability-Weighted',prob:100,desc:'25% Bull + 50% Base + 25% Bear \u2014 expected outcome',yearly:[{y:0,med:1350000,p10:1350000,p90:1350000},{y:1,med:1450851,p10:1313332,p90:1633094},{y:2,med:1566294,p10:1361234,p90:1870232},{y:3,med:1695648,p10:1424154,p90:2137040},{y:4,med:1840787,p10:1501155,p90:2449735},{y:5,med:2002512,p10:1591894,p90:2815826},{y:6,med:2182908,p10:1686686,p90:3255641},{y:7,med:2389484,p10:1796422,p90:3795753},{y:8,med:2638990,p10:1914382,p90:4439365},{y:9,med:2903650,p10:2045796,p90:5255582},{y:10,med:3219847,p10:2197458,p90:6306362}],assets:[{name:'AI/Tech Stocks',start:324000,med:742080,cagr:8.6,color:'#3b82f6'},{name:'Non-AI Stocks',start:135000,med:234900,cagr:5.7,color:'#60a5fa'},{name:'Int\'l Stocks',start:54000,med:90701,cagr:5.3,color:'#93c5fd'},{name:'Cyprus Land',start:337000,med:653527,cagr:6.8,color:'#22c55e'},{name:'Bonds',start:162000,med:249437,cagr:4.4,color:'#a3a3a3'},{name:'Bitcoin',start:94500,med:262942,cagr:10.8,color:'#f59e0b'},{name:'Gold',start:67500,med:160039,cagr:9.0,color:'#eab308'},{name:'Watches',start:67500,med:110839,cagr:5.1,color:'#8b5cf6'},{name:'Cash',start:108000,med:152085,cagr:3.5,color:'#6b7280'}],final:{p10:2197458,med:3219847,mean:4035119,p90:6306362}}
+};
+
+// ── STATE ──
+let activeTab = 0;
+let activeScenario = 'normalisation';
+let activeAlloc = 1;
+let activeProfile = 'balanced';
+let donutChart = null;
+let mpScenario = 'base';
+let fcScenario = 'pw';
+let fcChart = null;
+let dismissedAlerts = new Set();
+let manualBreaches = {};  // { "TICKER:index": true }
+let allThesesExpanded = false;
+let modalTab = 'holdings';
+
+// ── HELPERS ──
+const $ = s => document.querySelector(s);
+const pct = v => (v >= 0 ? '+' : '') + v.toFixed(1) + '%';
+const pctClass = v => v >= 0 ? 'positive' : 'negative';
+const gbp = v => '\u00a3' + v.toLocaleString('en-GB') + 'K';
+const catClass = c => c === 'ETF' ? 'etf' : c === 'Benchmark' ? 'bench' : c === 'AI Newer' ? 'newer' : '';
+
+function getPortfolioTotal() {
+  return PORTFOLIO_CONFIG.holdings.reduce((s, h) => s + h.shares * h.price, 0);
+}
+
+function getHoldingValue(h) { return h.shares * h.price; }
+
+function getHoldingWeight(h) {
+  const total = getPortfolioTotal();
+  return total > 0 ? (getHoldingValue(h) / total * 100) : 0;
+}
+
+function verdictColor(v) {
+  const m = {'STRONG BUY':'#22c55e','BUY':'#3b82f6','HOLD':'#eab308','TRIM':'#f97316','EXIT':'#ef4444'};
+  return m[v] || '#666';
+}
+function verdictBadgeClass(v) {
+  const m = {'STRONG BUY':'sb','BUY':'buy','HOLD':'hold','TRIM':'trim','EXIT':'exit'};
+  return m[v] || 'na';
+}
+function sizingBadgeClass(s) {
+  const m = {'UNDERWEIGHT':'uw','CORRECT':'correct','OVERWEIGHT':'ow'};
+  return m[s] || 'correct';
+}
+
+function switchTab(i) {
+  activeTab = i;
+  document.querySelectorAll('.nav button').forEach((b,j) => b.classList.toggle('active', j === i));
+  render();
+}
+
+// ╔══════════════════════════════════════════════════════════════╗
+// ║  WEBHOOK CONFIG — Paste your Zapier/webhook URL below       ║
+// ╚══════════════════════════════════════════════════════════════╝
+const ALERT_WEBHOOK_URL = 'https://hooks.zapier.com/hooks/catch/XXXXXXX/XXXXXXX/';
+
+function sendAlertWebhook(payload) {
+  if (!ALERT_WEBHOOK_URL || ALERT_WEBHOOK_URL.includes('XXXX')) return;
+  try {
+    fetch(ALERT_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    }).catch(() => {});
+  } catch (e) {}
+}
+
+// ── ALERTS ENGINE ──
+function computeAlerts() {
+  const alerts = [];
+  const total = getPortfolioTotal();
+  PORTFOLIO_CONFIG.holdings.forEach(h => {
+    const th = PORTFOLIO_CONFIG.theses[h.ticker];
+    if (!th) return;
+    // Price-based break conditions
+    th.breakConditions.forEach((bc, idx) => {
+      if (bc.type === 'price_below' && h.price < bc.value) {
+        alerts.push({ ticker: h.ticker, label: bc.label, id: h.ticker + ':price:' + idx });
+      }
+      if (bc.type === 'price_above' && h.price > bc.value) {
+        alerts.push({ ticker: h.ticker, label: bc.label, id: h.ticker + ':price:' + idx });
+      }
+      if (bc.type === 'manual' && manualBreaches[h.ticker + ':' + idx]) {
+        alerts.push({ ticker: h.ticker, label: bc.label, id: h.ticker + ':manual:' + idx });
+      }
+    });
+    // Concentration > 12%
+    const w = getHoldingWeight(h);
+    if (w > 12) {
+      alerts.push({ ticker: h.ticker, label: `${w.toFixed(1)}% concentration (>12%)`, id: h.ticker + ':conc' });
+    }
+    // EXIT verdict still in portfolio
+    if (th.verdict === 'EXIT') {
+      alerts.push({ ticker: h.ticker, label: `Verdict is EXIT \u2014 consider selling`, id: h.ticker + ':exit' });
+    }
+  });
+  return alerts.filter(a => !dismissedAlerts.has(a.id));
+}
+
+function renderAlerts() {
+  const strip = document.getElementById('alertsStrip');
+  const alerts = computeAlerts();
+  if (alerts.length === 0) {
+    strip.classList.add('hidden');
+    strip.innerHTML = '';
+    return;
+  }
+  strip.classList.remove('hidden');
+  const pills = alerts.map(a =>
+    `<span class="alert-pill">\u26A0 ${a.ticker}: ${a.label}<span class="close-pill" onclick="dismissAlert('${a.id}')">\u2715</span></span>`
+  ).join('');
+  strip.innerHTML = pills + `<button class="mark-reviewed" onclick="dismissAllAlerts()">MARK ALL REVIEWED</button>`;
+  // Fire webhook for each un-dismissed alert
+  alerts.forEach(a => {
+    sendAlertWebhook({ ticker: a.ticker, type: 'thesis_break', message: a.label, id: a.id, timestamp: new Date().toISOString() });
+  });
+}
+
+window.dismissAlert = function(id) {
+  dismissedAlerts.add(id);
+  renderAlerts();
+};
+window.dismissAllAlerts = function() {
+  computeAlerts().forEach(a => dismissedAlerts.add(a.id));
+  renderAlerts();
+};
+window.toggleManualBreach = function(ticker, idx) {
+  const key = ticker + ':' + idx;
+  if (manualBreaches[key]) delete manualBreaches[key];
+  else manualBreaches[key] = true;
+  renderAlerts();
+  // Also re-render to update toggle state if on My Portfolio tab
+  if (activeTab === 3) render();
+};
+
+// ── RENDERERS (existing tabs unchanged) ──
+function renderUniverse() {
+  const kpis = [
+    ['Instruments Tracked','19'],['Data History','10 Years'],
+    ['AI Basket 10Y','+4,426%'],['SPY 10Y','+242%'],['Best Sharpe','NVDA (1.56)'],
+  ];
+  let rows = UNIVERSE.map(r => `<tr>
+    <td style="font-weight:600">${r[0]}</td>
+    <td><span class="cat-badge ${catClass(r[1])}">${r[1]}</span></td>
+    <td class="tabular ${pctClass(r[2])}">${pct(r[2])}</td>
+    <td class="tabular">${r[3].toFixed(1)}%</td>
+    <td class="tabular negative">${r[4].toFixed(1)}%</td>
+    <td class="tabular" style="font-weight:600">${r[5].toFixed(2)}</td>
+  </tr>`).join('');
+  return `
+    <div class="kpi-row">${kpis.map(k => `<div class="kpi"><div class="kpi-label">${k[0]}</div><div class="kpi-value tabular">${k[1]}</div></div>`).join('')}</div>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Ticker</th><th>Category</th><th>Ann. Return</th><th>Ann. Vol</th><th>Max DD</th><th>Sharpe</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>`;
+}
+
+function renderBacktests() {
+  const maxRet = Math.max(...BACKTESTS.map(r => r[1]));
+  const maxDD = Math.max(...BACKTESTS.map(r => Math.abs(r[4])));
+  let rows = BACKTESTS.map(r => {
+    const retW = (r[1] / maxRet * 100).toFixed(0);
+    const ddW = (Math.abs(r[4]) / maxDD * 100).toFixed(0);
+    return `<tr>
+      <td style="font-weight:600;min-width:200px">${r[0]}</td>
+      <td class="bar-cell tabular"><div class="bar-bg" style="width:${retW}%;background:var(--accent)"></div><span class="bar-val positive">${r[1].toLocaleString()}%</span></td>
+      <td class="tabular positive">${pct(r[2])}</td>
+      <td class="tabular">${r[3].toFixed(1)}%</td>
+      <td class="bar-cell tabular"><div class="bar-bg" style="width:${ddW}%;background:var(--red)"></div><span class="bar-val negative">${r[4].toFixed(1)}%</span></td>
+      <td class="tabular" style="font-weight:600">${r[5].toFixed(2)}</td>
+      <td class="tabular negative">${r[6].toFixed(1)}%</td>
+    </tr>`;
+  }).join('');
+  return `
+    <div class="table-wrap"><table>
+      <thead><tr><th>Strategy</th><th>Total Return</th><th>Ann. Return</th><th>Ann. Vol</th><th>Max DD</th><th>Sharpe</th><th>Worst 1Y</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="insight">AI Overweight (60/40) delivered the best risk-adjusted return (Sharpe 1.29). Every AI strategy beat both SPY and QQQ. But max drawdowns of &minus;39% demand psychological preparation.</div>`;
+}
+
+function renderScenarios() {
+  const s = SCENARIOS[activeScenario];
+  const o = OUTCOMES[activeScenario][activeAlloc];
+  const median = o[0], p10 = o[1], p90 = o[2];
+  const beats = median >= 1200;
+  const pw = Object.entries(OUTCOMES).reduce((sum,[k,v]) => sum + SCENARIOS[k].prob / 100 * v[activeAlloc][0], 0);
+  const scenBtns = Object.entries(SCENARIOS).map(([k,v]) =>
+    `<button class="${k===activeScenario?'active':''}" onclick="setScenario('${k}')">${v.label} <span style="opacity:0.5;font-size:11px">${v.prob}%</span></button>`
+  ).join('');
+  const allocBtns = ALLOCS.map((a,i) =>
+    `<button class="${i===activeAlloc?'active':''}" onclick="setAlloc(${i})">${a} AI/Mkt</button>`
+  ).join('');
+  return `
+    <div class="scenario-controls">
+      <div class="control-group"><label>Scenario</label><div class="btn-group">${scenBtns}</div></div>
+      <div class="control-group"><label>Allocation (AI / Market)</label><div class="btn-group">${allocBtns}</div></div>
+    </div>
+    <div class="scenario-note">${s.desc} &mdash; ${s.prob}% probability</div>
+    <div class="outcome-cards">
+      <div class="outcome-card"><div class="label">Downside (P10)</div><div class="value tabular negative">${gbp(p10)}</div><div class="sub">${p10 < 1200 ? 'Below starting capital' : 'Above starting capital'}</div></div>
+      <div class="outcome-card highlight"><div class="label">Median Outcome</div><div class="value tabular">${gbp(median)}</div><div class="sub">${beats ? 'Beats' : 'Below'} starting \u00a31,200K</div></div>
+      <div class="outcome-card"><div class="label">Upside (P90)</div><div class="value tabular positive">${gbp(p90)}</div><div class="sub">Best-case scenario</div></div>
+    </div>
+    <div class="outcome-meta">
+      <div class="meta-card"><div class="label">Prob-Weighted Expected (all scenarios)</div><div class="value tabular">${gbp(Math.round(pw))}</div></div>
+      <div class="meta-card"><div class="label">Starting Capital</div><div class="value tabular">\u00a31,200K</div></div>
+      <div class="meta-card"><div class="label">Multiple on Capital</div><div class="value tabular">${(median / 1200).toFixed(1)}\u00d7</div></div>
+    </div>`;
+}
+
+function renderPortfolio() {
+  const profiles = Object.entries(PORTFOLIOS);
+  const profBtns = profiles.map(([k,v]) => {
+    const rec = v.recommended ? `<span class="rec-badge">REC</span>` : '';
+    return `<button class="${k===activeProfile?'active':''}" onclick="setProfile('${k}')" style="position:relative">${v.label} (${v.pct}%)${rec}</button>`;
+  }).join('');
+  const p = PORTFOLIOS[activeProfile];
+  const aiTotal = p.ai.reduce((s,r) => s + r[1], 0);
+  const coreTotal = p.core.reduce((s,r) => s + r[1], 0);
+  const makeRows = (arr, section) => arr.map(r =>
+    `<tr><td style="font-weight:500">${r[0]}</td><td class="tabular">${r[1]}%</td><td class="tabular">\u00a3${r[2]}K</td><td><span class="cat-badge${section==='ai'?'':' bench'}">${section==='ai'?'AI Sleeve':'Core'}</span></td></tr>`
+  ).join('');
+  return `
+    <div class="profile-tabs">${profBtns}</div>
+    <div class="port-layout">
+      <div class="donut-wrap">
+        <canvas id="donutCanvas" width="200" height="200"></canvas>
+        <div class="donut-legend">
+          <div class="donut-legend-item"><span class="dot" style="background:var(--accent)"></span>AI Sleeve ${aiTotal}%</div>
+          <div class="donut-legend-item"><span class="dot" style="background:var(--text-faint)"></span>Core ${coreTotal}%</div>
+        </div>
+      </div>
+      <div class="table-wrap"><table>
+        <thead><tr><th>Holding</th><th>Weight</th><th>Value</th><th>Sleeve</th></tr></thead>
+        <tbody>${makeRows(p.ai,'ai')}${makeRows(p.core,'core')}</tbody>
+      </table></div>
+    </div>`;
+}
+
+// ── MY PORTFOLIO (enhanced with thesis cards) ──
+function renderMyPortfolio() {
+  const totalVal = getPortfolioTotal();
+  const nwPct = 34;
+  const holdings = PORTFOLIO_CONFIG.holdings;
+  const positions = holdings.length;
+
+  // Sort by value desc
+  const sorted = [...holdings].sort((a,b) => getHoldingValue(b) - getHoldingValue(a));
+
+  // Weighted P/E
+  const peHoldings = sorted.filter(h => {
+    const th = PORTFOLIO_CONFIG.theses[h.ticker];
+    return th && th.fundamentals.peRatio > 0;
+  });
+  const totalPeWeight = peHoldings.reduce((s,h) => s + getHoldingWeight(h), 0);
+  const wPE = totalPeWeight > 0 ? peHoldings.reduce((s,h) => s + (PORTFOLIO_CONFIG.theses[h.ticker].fundamentals.peRatio) * getHoldingWeight(h), 0) / totalPeWeight : 0;
+
+  // Quality score
+  const qMap = {'STRONG BUY':5,'BUY':4,'HOLD':3,'TRIM':2,'EXIT':1};
+  const avgQ = (sorted.reduce((s,h) => {
+    const th = PORTFOLIO_CONFIG.theses[h.ticker];
+    return s + (th ? (qMap[th.verdict]||3) : 3) * getHoldingWeight(h);
+  }, 0) / 100).toFixed(1);
+
+  const vBadge = v => `<span class="verdict-badge ${verdictBadgeClass(v)}">${v}</span>`;
+  const sBadge = s => `<span class="sizing-badge ${sizingBadgeClass(s)}">${s}</span>`;
+
+  const kpis = [
+    ['Total Value','$'+Math.round(totalVal).toLocaleString()],
+    ['% of Net Worth','~'+nwPct+'%'],
+    ['Positions',positions],
+    ['Wtd P/E','~'+Math.round(wPE)+'x'],
+    ['Avg Quality',avgQ+' / 5'],
+  ];
+
+  // Category breakdown
+  const cats = {};
+  sorted.forEach(h => {
+    if (!cats[h.category]) cats[h.category] = 0;
+    cats[h.category] += getHoldingWeight(h);
+  });
+  const catColors = {'AI Platforms':'#3b82f6','AI Infrastructure':'#8b5cf6','Energy/Power':'#f59e0b','Commodities':'#22c55e'};
+  const catBar = Object.entries(cats).map(([name, pctV]) =>
+    `<div class="mp-cat-seg" style="flex:${pctV};background:${catColors[name]||'#666'}" title="${name}: ${pctV.toFixed(1)}%">${pctV.toFixed(0)}%</div>`
+  ).join('');
+  const catLegend = Object.entries(cats).map(([name, pctV]) =>
+    `<span style="display:inline-flex;align-items:center;gap:4px;margin-right:16px;font-size:12px;color:var(--text-muted)"><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${catColors[name]||'#666'}"></span>${name} (${pctV.toFixed(1)}%)</span>`
+  ).join('');
+
+  // Holdings table
+  const rows = sorted.map(h => {
+    const th = PORTFOLIO_CONFIG.theses[h.ticker];
+    const w = getHoldingWeight(h);
+    const v = getHoldingValue(h);
+    const pe = th ? th.fundamentals.peRatio : 'N/A';
+    const verdict = th ? th.verdict : 'N/A';
+    const sizing = th ? th.sizing : 'N/A';
+    const revG = th ? th.fundamentals.revenueGrowth : null;
+    const om = th ? th.fundamentals.operatingMargin : null;
+    const fcf = th ? th.fundamentals.fcfMargin : null;
+    const fmtN = n => n === null ? '\u2014' : (n < 0 ? `<span class="negative">${n}%</span>` : n+'%');
+    return `<tr>
+      <td style="font-weight:600">${h.ticker}</td>
+      <td class="tabular">${w.toFixed(1)}%</td>
+      <td class="tabular">$${Math.round(v).toLocaleString()}</td>
+      <td class="tabular" style="${pe < 0 ? 'color:var(--red)' : ''}">${pe}x</td>
+      <td>${vBadge(verdict)}</td>
+      <td>${sBadge(sizing)}</td>
+      <td class="tabular">${fmtN(revG)}</td>
+      <td class="tabular">${fmtN(om)}</td>
+      <td class="tabular">${fmtN(fcf)}</td>
+    </tr>`;
+  }).join('');
+
+  // Issues
+  const issues = MP_ISSUES.map(i =>
+    `<div class="alert-card"><span class="alert-sev ${i.sev}">${i.sev}</span><div><strong style="color:var(--text)">${i.title}</strong><br>${i.desc}</div></div>`
+  ).join('');
+
+  // Recs
+  const iconMap = {trim:'\u2702',exit:'\u2716',hold:'\u2714',add:'\u002B'};
+  const recs = MP_RECS.map(r =>
+    `<div class="action-card"><div class="act-icon ${r.icon}">${iconMap[r.icon]}</div><div><div class="act-title">${r.title}</div><div class="act-desc">${r.desc}</div></div></div>`
+  ).join('');
+
+  // Scenario simulator
+  const simReturns = {bull:[1.35,1.35,1.35],base:[1.15,1.15,1.15],bear:[0.80,1.05,1.05]};
+  const simLabels = {bull:'Bull (+35%/yr)',base:'Base (+15%/yr)',bear:'Bear (-20% Y1, +5%/yr)'};
+  const sr = simReturns[mpScenario];
+  const y1 = totalVal * sr[0];
+  const y3 = totalVal * sr[0] * sr[1] * sr[2];
+  let y5 = totalVal;
+  for(let i=0;i<5;i++) y5 *= (i<sr.length ? sr[i] : sr[sr.length-1]);
+  const totalNW = 1100000;
+  const nw1 = totalNW - totalVal + y1;
+  const nw3 = totalNW - totalVal + y3;
+  const nw5 = totalNW - totalVal + y5;
+  const simBtns = Object.entries(simLabels).map(([k,v]) =>
+    `<button class="${k===mpScenario?'active':''}" onclick="setMpScenario('${k}')">${v}</button>`
+  ).join('');
+  const fmtD = n => '$'+(n/1000).toFixed(0)+'K';
+  const fmtNW = n => '$'+(n/1000000).toFixed(2)+'M';
+
+  // ── THESIS CARDS ──
+  const thesisCards = sorted.map(h => {
+    const th = PORTFOLIO_CONFIG.theses[h.ticker];
+    if (!th) return '';
+    const isActionable = th.verdict === 'TRIM' || th.verdict === 'EXIT';
+    const openClass = (allThesesExpanded || isActionable) ? 'open' : '';
+    const borderColor = verdictColor(th.verdict);
+    const dots = Array.from({length:5}, (_,i) => i < h.conviction ? '\u25CF' : '\u25CB').join('');
+    const w = getHoldingWeight(h);
+
+    // Fundamentals comparison badges
+    const peBadge = th.fundamentals.peRatio < 0 ? '<span class="fund-badge neg">NEGATIVE</span>'
+      : th.fundamentals.peRatio < 35 ? '<span class="fund-badge cheap">CHEAP</span>'
+      : th.fundamentals.peRatio <= 60 ? '<span class="fund-badge fair">FAIR</span>'
+      : '<span class="fund-badge expensive">EXPENSIVE</span>';
+    const fcfBadge = th.fundamentals.fcfMargin < 0 ? '<span class="fund-badge neg">NEGATIVE</span>'
+      : th.fundamentals.fcfMargin < 15 ? '<span class="fund-badge weak">WEAK</span>'
+      : '<span class="fund-badge strong">STRONG</span>';
+    const debtBadge = th.fundamentals.debtEbitda < 1 ? '<span class="fund-badge clean">CLEAN</span>'
+      : th.fundamentals.debtEbitda <= 2.5 ? '<span class="fund-badge moderate">MODERATE</span>'
+      : '<span class="fund-badge high-debt">HIGH</span>';
+    const upside = ((th.fundamentals.analystTarget - h.price) / h.price * 100);
+    const targetBadge = upside >= 0
+      ? `<span class="fund-badge upside">+${upside.toFixed(0)}% upside</span>`
+      : `<span class="fund-badge downside">${upside.toFixed(0)}% downside</span>`;
+
+    const drivers = th.keyDrivers.map(d => `<li>\u2705 ${d}</li>`).join('');
+    const breaks = th.breakConditions.map((bc, idx) => {
+      const isBreached = bc.type === 'manual' ? !!manualBreaches[h.ticker + ':' + idx]
+        : bc.type === 'price_below' ? h.price < bc.value
+        : bc.type === 'price_above' ? h.price > bc.value
+        : false;
+      const toggleHTML = bc.type === 'manual'
+        ? `<label class="break-toggle"><input type="checkbox" ${isBreached?'checked':''} onchange="toggleManualBreach('${h.ticker}',${idx})"><span class="slider"></span></label>`
+        : (isBreached ? '<span style="color:var(--red);font-weight:600;font-size:11px">TRIGGERED</span>' : '<span style="color:var(--green);font-size:11px">OK</span>');
+      return `<li>\ud83d\udd34 ${bc.label} ${toggleHTML}</li>`;
+    }).join('');
+
+    return `<div class="thesis-card ${openClass}" style="border-left:3px solid ${borderColor}" id="thesis-${h.ticker}">
+      <div class="thesis-header" onclick="toggleThesis('${h.ticker}')">
+        <span class="ticker-tag">${h.ticker}</span>
+        <span class="company-name">${h.name} <span style="color:var(--text-faint);font-size:11px">${w.toFixed(1)}%</span></span>
+        ${vBadge(th.verdict)} ${sBadge(th.sizing)}
+        <span class="conviction-dots" style="color:${borderColor}">${dots}</span>
+        <span class="chevron">\u25BC</span>
+      </div>
+      <div class="thesis-body">
+        <div class="sub-title">Thesis</div>
+        <div class="thesis-text">"${th.thesis}"</div>
+        <div class="sub-title">Key Drivers (must remain true)</div>
+        <ul class="drivers-list">${drivers}</ul>
+        <div class="sub-title">Thesis Break Conditions</div>
+        <ul class="break-list">${breaks}</ul>
+        <div class="sub-title">Fundamentals</div>
+        <div class="fundamentals-grid">
+          <div class="fund-row"><span class="fund-label">P/E Ratio</span><span class="fund-val">${th.fundamentals.peRatio}x ${peBadge}</span></div>
+          <div class="fund-row"><span class="fund-label">Revenue Growth</span><span class="fund-val">${th.fundamentals.revenueGrowth}%</span></div>
+          <div class="fund-row"><span class="fund-label">FCF Margin</span><span class="fund-val">${th.fundamentals.fcfMargin}% ${fcfBadge}</span></div>
+          <div class="fund-row"><span class="fund-label">Op. Margin</span><span class="fund-val">${th.fundamentals.operatingMargin}%</span></div>
+          <div class="fund-row"><span class="fund-label">Debt/EBITDA</span><span class="fund-val">${th.fundamentals.debtEbitda}x ${debtBadge}</span></div>
+          <div class="fund-row"><span class="fund-label">Analyst Target</span><span class="fund-val">$${th.fundamentals.analystTarget} ${targetBadge}</span></div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const expandToggle = allThesesExpanded
+    ? `<button onclick="collapseAllTheses()">Collapse All</button>`
+    : `<button onclick="expandAllTheses()">Expand All</button>`;
+
+  return `
+    <div class="kpi-row">${kpis.map(k => `<div class="kpi"><div class="kpi-label">${k[0]}</div><div class="kpi-value tabular">${k[1]}</div></div>`).join('')}</div>
+    <div class="mp-section-title">Category Breakdown</div>
+    <div class="mp-cat-bar">${catBar}</div>
+    <div style="margin-bottom:24px">${catLegend}</div>
+    <div class="mp-section-title">Holdings</div>
+    <div class="table-wrap" style="margin-bottom:24px"><table>
+      <thead><tr><th>Ticker</th><th>Weight</th><th>Value</th><th>P/E</th><th>Verdict</th><th>Sizing</th><th>Rev Growth</th><th>Op Margin</th><th>FCF Margin</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table></div>
+    <div class="mp-section-title">Portfolio Issues</div>
+    ${issues}
+    <div class="mp-section-title">Recommendations</div>
+    <div class="rec-grid">${recs}</div>
+    <div class="mp-section-title">Scenario Simulator</div>
+    <div class="mp-sim-controls"><div class="control-group"><label style="display:block;font-size:11px;text-transform:uppercase;letter-spacing:0.05em;color:var(--text-faint);margin-bottom:8px">Scenario</label><div class="btn-group">${simBtns}</div></div></div>
+    <div class="mp-sim-grid">
+      <div class="mp-sim-card"><div class="label">1-Year</div><div class="value tabular">${fmtD(y1)}</div><div class="sub">NW: ${fmtNW(nw1)}</div></div>
+      <div class="mp-sim-card"><div class="label">3-Year</div><div class="value tabular">${fmtD(y3)}</div><div class="sub">NW: ${fmtNW(nw3)}</div></div>
+      <div class="mp-sim-card"><div class="label">5-Year</div><div class="value tabular">${fmtD(y5)}</div><div class="sub">NW: ${fmtNW(nw5)}</div></div>
+    </div>
+    <div class="insight" style="margin-top:16px">Portfolio is $${Math.round(totalVal).toLocaleString()} (${nwPct}% of ~$1.1M NW). Projections assume non-stock assets grow at 5%/yr.</div>
+    <div class="thesis-section">
+      <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;margin-top:32px;flex-wrap:wrap">
+        <span class="mp-section-title" style="margin:0">\u2014 Thesis &amp; Fundamentals \u2014</span>
+        <div class="thesis-controls">${expandToggle}</div>
+      </div>
+      ${thesisCards}
+    </div>`;
+}
+
+window.toggleThesis = function(ticker) {
+  const el = document.getElementById('thesis-' + ticker);
+  if (el) el.classList.toggle('open');
+};
+window.expandAllTheses = function() {
+  allThesesExpanded = true;
+  document.querySelectorAll('.thesis-card').forEach(c => c.classList.add('open'));
+  render();
+};
+window.collapseAllTheses = function() {
+  allThesesExpanded = false;
+  document.querySelectorAll('.thesis-card').forEach(c => c.classList.remove('open'));
+  render();
+};
+
+function renderExitRules() {
+  return EXIT_RULES.map(r => `
+    <div class="rule-card">
+      <div class="rule-header">
+        <span class="priority-badge ${r.priority}">${r.priority}</span>
+        <span class="rule-name">${r.name}</span>
+      </div>
+      <div class="rule-body">
+        <div><dt>Trigger</dt><dd>${r.trigger}</dd></div>
+        <div><dt>Action</dt><dd>${r.action}</dd></div>
+      </div>
+    </div>`).join('');
+}
+
+// ── 10-YEAR FORECAST (unchanged) ──
+function renderForecast() {
+  const sc = FC_DATA[fcScenario];
+  const f = sc.final;
+  const startNW = 1350000;
+  const medMultiple = (f.med / startNW).toFixed(1);
+  const medCAGR = ((Math.pow(f.med / startNW, 1/10) - 1) * 100).toFixed(1);
+  const fmtM = v => '$' + (v/1000000).toFixed(2) + 'M';
+  const fmtK = v => '$' + Math.round(v/1000).toLocaleString() + 'K';
+  const scenBtns = ['pw','bull','base','bear'].map(k => {
+    const d = FC_DATA[k];
+    return `<button class="${k===fcScenario?'active':''}" onclick="setFcScenario('${k}')">${d.label} <span style="opacity:0.5;font-size:11px">${d.prob}%</span></button>`;
+  }).join('');
+  const maxMed = Math.max(...sc.assets.map(a => a.med));
+  const assetRows = sc.assets.map(a => {
+    const barPct = Math.max(4, (a.med / maxMed * 100)).toFixed(0);
+    const gain = a.med - a.start;
+    const gainClass = gain >= 0 ? 'positive' : 'negative';
+    return `<div class="fc-asset-row">
+      <div class="fc-asset-name">${a.name}</div>
+      <div class="fc-asset-bar"><div class="fc-asset-bar-fill" style="width:${barPct}%;background:${a.color}"></div></div>
+      <div class="fc-asset-vals">
+        <span style="color:var(--text-faint)">${fmtK(a.start)}</span>
+        <span style="font-weight:600">${fmtK(a.med)}</span>
+        <span class="${gainClass}">${a.cagr >= 0 ? '+' : ''}${a.cagr}%</span>
+      </div>
+    </div>`;
+  }).join('');
+  return `
+    <div class="kpi-row">
+      <div class="kpi"><div class="kpi-label">Starting Net Worth</div><div class="kpi-value tabular">${fmtM(startNW)}</div></div>
+      <div class="kpi"><div class="kpi-label">10Y Median</div><div class="kpi-value tabular" style="color:var(--accent)">${fmtM(f.med)}</div></div>
+      <div class="kpi"><div class="kpi-label">Multiple</div><div class="kpi-value tabular">${medMultiple}x</div></div>
+      <div class="kpi"><div class="kpi-label">CAGR</div><div class="kpi-value tabular">${medCAGR}%</div></div>
+      <div class="kpi"><div class="kpi-label">Simulations</div><div class="kpi-value tabular">10,000</div></div>
+    </div>
+    <div class="fc-scenario-btns">${scenBtns}</div>
+    <div class="scenario-note" style="margin-bottom:16px">${sc.desc}</div>
+    <div class="fc-chart-wrap"><canvas id="fcChartCanvas"></canvas></div>
+    <div class="fc-summary-grid">
+      <div class="fc-summary-card"><div class="label">Downside (P10)</div><div class="value tabular negative">${fmtM(f.p10)}</div><div class="sub">${(f.p10/startNW).toFixed(1)}x on capital</div></div>
+      <div class="fc-summary-card highlight"><div class="label">Median (P50)</div><div class="value tabular">${fmtM(f.med)}</div><div class="sub">${medMultiple}x on capital</div></div>
+      <div class="fc-summary-card"><div class="label">Upside (P90)</div><div class="value tabular positive">${fmtM(f.p90)}</div><div class="sub">${(f.p90/startNW).toFixed(1)}x on capital</div></div>
+    </div>
+    <div class="mp-section-title">Asset Class Breakdown (10Y Median)</div>
+    <div style="font-size:11px;color:var(--text-faint);margin-bottom:12px;display:flex;justify-content:flex-end;gap:12px;padding-right:8px">
+      <span>Start</span><span style="min-width:80px;text-align:right">10Y Value</span><span style="min-width:48px;text-align:right">CAGR</span>
+    </div>
+    <div class="table-wrap" style="border:none;background:transparent">${assetRows}</div>
+    <div class="insight" style="margin-top:20px">
+      10,000 Monte Carlo simulations per scenario using log-normal returns. Return assumptions based on Goldman Sachs (S&P 6.5%/yr), ARK/VanEck (BTC $300\u2013600K by 2030\u201335), VanEck (gold $5K+), and Cyprus real estate forecasts (5\u20138%/yr). Volatility calibrated to historical asset class behaviour. This is not financial advice.
+    </div>`;
+}
+
+function initFcChart() {
+  const canvas = document.getElementById('fcChartCanvas');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const sc = FC_DATA[fcScenario];
+  const years = sc.yearly.map(y => 2026 + y.y);
+  const medians = sc.yearly.map(y => y.med);
+  const p10s = sc.yearly.map(y => y.p10);
+  const p90s = sc.yearly.map(y => y.p90);
+  if (fcChart) fcChart.destroy();
+  fcChart = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: years,
+      datasets: [
+        {label:'P90 (Upside)',data:p90s,borderColor:'rgba(34,197,94,0.5)',backgroundColor:'rgba(34,197,94,0.06)',fill:'+1',borderWidth:1.5,borderDash:[4,4],pointRadius:0,pointHoverRadius:4,tension:0.3},
+        {label:'Median (P50)',data:medians,borderColor:'#3b82f6',backgroundColor:'rgba(59,130,246,0.08)',fill:'+1',borderWidth:2.5,pointRadius:3,pointBackgroundColor:'#3b82f6',pointHoverRadius:5,tension:0.3},
+        {label:'P10 (Downside)',data:p10s,borderColor:'rgba(239,68,68,0.5)',backgroundColor:'transparent',borderWidth:1.5,borderDash:[4,4],pointRadius:0,pointHoverRadius:4,tension:0.3},
+      ]
+    },
+    options: {
+      responsive:true,maintainAspectRatio:false,
+      interaction:{mode:'index',intersect:false},
+      plugins:{
+        legend:{labels:{color:'#a0a0a0',font:{family:'Inter',size:12},usePointStyle:true,pointStyle:'line',padding:16}},
+        tooltip:{backgroundColor:'#1a1a1a',borderColor:'rgba(255,255,255,0.1)',borderWidth:1,titleColor:'#e5e5e5',bodyColor:'#a0a0a0',padding:12,callbacks:{label:ctx=>{const v=ctx.parsed.y;return ctx.dataset.label+': $'+(v/1000000).toFixed(2)+'M';}}}
+      },
+      scales:{
+        x:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#666',font:{family:'Inter',size:11}}},
+        y:{grid:{color:'rgba(255,255,255,0.04)'},ticks:{color:'#666',font:{family:'Inter',size:11},callback:v=>'$'+(v/1000000).toFixed(1)+'M'}}
+      }
+    }
+  });
+}
+
+// ── RENDER PIPELINE ──
+const RENDERERS = [renderUniverse, renderBacktests, renderScenarios, renderMyPortfolio, renderPortfolio, renderExitRules, renderForecast];
+
+function render() {
+  const main = $('#main');
+  main.innerHTML = TABS.map((t,i) => `<section class="tab${i===activeTab?' active':''}" id="tab-${i}"></section>`).join('');
+  $(`#tab-${activeTab}`).innerHTML = RENDERERS[activeTab]();
+  if (activeTab === 4) initDonut();
+  if (activeTab === 6) initFcChart();
+  renderAlerts();
+}
+
+function initDonut() {
+  const canvas = $('#donutCanvas');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const p = PORTFOLIOS[activeProfile];
+  const aiTotal = p.ai.reduce((s,r) => s + r[1], 0);
+  const coreTotal = p.core.reduce((s,r) => s + r[1], 0);
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(canvas, {
+    type:'doughnut',
+    data:{labels:['AI Sleeve','Core'],datasets:[{data:[aiTotal,coreTotal],backgroundColor:['#3b82f6','#444'],borderWidth:0,borderRadius:3}]},
+    options:{cutout:'68%',plugins:{legend:{display:false},tooltip:{enabled:true}},responsive:false,animation:{animateRotate:true,duration:500}}
+  });
+}
+
+// ── GLOBAL HANDLERS ──
+window.setScenario = k => { activeScenario = k; render(); };
+window.setAlloc = i => { activeAlloc = i; render(); };
+window.setProfile = k => { activeProfile = k; render(); };
+window.setMpScenario = k => { mpScenario = k; render(); };
+window.setFcScenario = k => { fcScenario = k; render(); };
+
+// ── EDIT MODAL ──
+window.openEditModal = function() {
+  document.getElementById('editModal').classList.add('open');
+  modalTab = 'holdings';
+  renderModal();
+};
+window.closeEditModal = function() {
+  document.getElementById('editModal').classList.remove('open');
+};
+
+function renderModal() {
+  const tabs = document.getElementById('modalTabs');
+  tabs.innerHTML = ['holdings','theses','export'].map(t =>
+    `<button class="${t===modalTab?'active':''}" onclick="setModalTab('${t}')">${t==='holdings'?'Holdings':t==='theses'?'Theses':'\ud83d\udccb Export Config'}</button>`
+  ).join('');
+  const body = document.getElementById('modalBody');
+  const actions = document.getElementById('modalActions');
+  if (modalTab === 'holdings') {
+    renderHoldingsModal(body, actions);
+  } else if (modalTab === 'theses') {
+    renderThesesModal(body, actions);
+  } else {
+    renderExportModal(body, actions);
+  }
+}
+
+window.setModalTab = function(t) { modalTab = t; renderModal(); };
+
+function renderHoldingsModal(body, actions) {
+  const h = PORTFOLIO_CONFIG.holdings;
+  let tableRows = h.map((row, i) => `<tr>
+    <td><input value="${row.ticker}" onchange="updateHolding(${i},'ticker',this.value)" style="width:60px"></td>
+    <td><input value="${row.name}" onchange="updateHolding(${i},'name',this.value)" style="width:120px"></td>
+    <td><input type="number" step="0.01" value="${row.shares}" onchange="updateHolding(${i},'shares',parseFloat(this.value)||0)" style="width:80px"></td>
+    <td><input type="number" step="0.01" value="${row.price}" onchange="updateHolding(${i},'price',parseFloat(this.value)||0)" style="width:90px"></td>
+    <td><button class="del-btn" onclick="deleteHolding(${i})">\u2716</button></td>
+  </tr>`).join('');
+  body.innerHTML = `<table class="modal-edit-table">
+    <thead><tr><th>Ticker</th><th>Name</th><th>Shares</th><th>Price</th><th></th></tr></thead>
+    <tbody>${tableRows}</tbody>
+  </table>
+  <button style="margin-top:12px;background:var(--accent-dim);border:1px solid var(--accent);color:var(--accent);font:500 12px/1 'Inter',sans-serif;padding:8px 16px;border-radius:var(--radius);cursor:pointer" onclick="addHolding()">+ Add Position</button>`;
+  actions.innerHTML = `<button class="btn-secondary" onclick="closeEditModal()">Cancel</button><button class="btn-primary" onclick="saveHoldingsAndClose()">Save Changes</button>`;
+}
+
+window.updateHolding = function(i, field, val) { PORTFOLIO_CONFIG.holdings[i][field] = val; };
+window.deleteHolding = function(i) { PORTFOLIO_CONFIG.holdings.splice(i, 1); renderModal(); };
+window.addHolding = function() {
+  PORTFOLIO_CONFIG.holdings.push({ ticker:'NEW', name:'New Position', shares:0, price:0, category:'AI Infrastructure', conviction:3 });
+  renderModal();
+};
+window.saveHoldingsAndClose = function() { render(); closeEditModal(); };
+
+function renderThesesModal(body, actions) {
+  const tickers = PORTFOLIO_CONFIG.holdings.map(h => h.ticker);
+  const selected = tickers[0] || '';
+  body.innerHTML = `<label>Select Ticker</label>
+    <select id="thesisTickerSelect" onchange="renderThesisEdit()">
+      ${tickers.map(t => `<option value="${t}">${t}</option>`).join('')}
+    </select>
+    <div id="thesisEditArea"></div>`;
+  actions.innerHTML = `<button class="btn-secondary" onclick="closeEditModal()">Cancel</button><button class="btn-primary" onclick="saveThesisAndClose()">Save Changes</button>`;
+  setTimeout(renderThesisEdit, 0);
+}
+
+window.renderThesisEdit = function() {
+  const ticker = document.getElementById('thesisTickerSelect').value;
+  const th = PORTFOLIO_CONFIG.theses[ticker];
+  const area = document.getElementById('thesisEditArea');
+  if (!th) { area.innerHTML = '<p style="color:var(--text-faint);margin-top:12px">No thesis data for this ticker.</p>'; return; }
+  const h = PORTFOLIO_CONFIG.holdings.find(x => x.ticker === ticker);
+  area.innerHTML = `
+    <label>Thesis</label>
+    <textarea id="thesisText">${th.thesis}</textarea>
+    <label>Conviction (1\u20135)</label>
+    <div class="conviction-slider">
+      <input type="range" min="1" max="5" value="${h ? h.conviction : 3}" id="convSlider" oninput="document.getElementById('convVal').textContent=this.value">
+      <span class="conv-val" id="convVal">${h ? h.conviction : 3}</span>
+    </div>
+    <label>Verdict</label>
+    <select id="verdictSelect">
+      ${['STRONG BUY','BUY','HOLD','TRIM','EXIT'].map(v => `<option value="${v}" ${v===th.verdict?'selected':''}>${v}</option>`).join('')}
+    </select>
+    <label>Sizing</label>
+    <select id="sizingSelect">
+      ${['UNDERWEIGHT','CORRECT','OVERWEIGHT'].map(s => `<option value="${s}" ${s===th.sizing?'selected':''}>${s}</option>`).join('')}
+    </select>`;
+};
+
+window.saveThesisAndClose = function() {
+  const ticker = document.getElementById('thesisTickerSelect').value;
+  const th = PORTFOLIO_CONFIG.theses[ticker];
+  if (th) {
+    const textEl = document.getElementById('thesisText');
+    if (textEl) th.thesis = textEl.value;
+    const convEl = document.getElementById('convSlider');
+    if (convEl) {
+      const h = PORTFOLIO_CONFIG.holdings.find(x => x.ticker === ticker);
+      if (h) h.conviction = parseInt(convEl.value);
+    }
+    const vEl = document.getElementById('verdictSelect');
+    if (vEl) th.verdict = vEl.value;
+    const sEl = document.getElementById('sizingSelect');
+    if (sEl) th.sizing = sEl.value;
+  }
+  render();
+  closeEditModal();
+};
+
+function renderExportModal(body, actions) {
+  const json = JSON.stringify(PORTFOLIO_CONFIG, null, 2);
+  body.innerHTML = `<div class="export-box">${escapeHTML(json)}</div>
+    <div class="export-note">To make changes permanent: copy the JSON above, open this HTML file in a text editor, find the <code>PORTFOLIO_CONFIG</code> block near the top of the &lt;script&gt; section, and replace it with your updated JSON. No coding required \u2014 just copy-paste.</div>`;
+  actions.innerHTML = `<button class="btn-secondary" onclick="closeEditModal()">Close</button><button class="btn-primary" onclick="copyExport()">Copy to Clipboard</button>`;
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+window.copyExport = function() {
+  const json = JSON.stringify(PORTFOLIO_CONFIG, null, 2);
+  navigator.clipboard.writeText('const PORTFOLIO_CONFIG = ' + json + ';').then(() => {
+    const btn = document.querySelector('.modal-actions .btn-primary');
+    if (btn) { btn.textContent = 'Copied!'; setTimeout(() => btn.textContent = 'Copy to Clipboard', 2000); }
+  }).catch(() => {
+    // Fallback: select the text
+    const box = document.querySelector('.export-box');
+    if (box) { const range = document.createRange(); range.selectNodeContents(box); const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range); }
+  });
+};
+
+// ── INIT ──
+function init() {
+  const nav = $('#nav');
+  nav.innerHTML = TABS.map((t,i) => `<button class="${i===0?'active':''}" onclick="switchTab(${i})">${t}</button>`).join('');
+  render();
+}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+else init();
+</script>
+</body>
+</html>
